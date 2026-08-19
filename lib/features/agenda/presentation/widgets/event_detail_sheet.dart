@@ -5,7 +5,6 @@ import 'package:bussola/core/components/secondary_button.dart';
 import 'package:bussola/core/theme/app_colors.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
 import 'package:bussola/features/agenda/data/mappers/event_formatting.dart';
-import 'package:bussola/features/agenda/data/models/enums.dart';
 import 'package:bussola/features/agenda/data/models/event_model.dart';
 import 'package:bussola/features/agenda/presentation/providers/category_provider.dart';
 import 'package:bussola/features/agenda/presentation/providers/event_provider.dart';

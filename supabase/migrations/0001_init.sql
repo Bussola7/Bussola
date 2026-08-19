@@ -1,4 +1,5 @@
--- Sprint 01 — Fundação do banco de dados do Bússola
+-- Fundação do banco de dados do Bússola (V1 simplificada — sem
+-- integrações externas de calendário).
 
 create table if not exists profiles (
   id uuid primary key default gen_random_uuid(),
@@ -20,17 +21,7 @@ create table if not exists settings (
   created_at timestamptz default now()
 );
 
-create table if not exists integrations (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) not null,
-  provider text not null,
-  status text default 'pendente',
-  token text,
-  created_at timestamptz default now()
-);
-
--- Nova tabela: preferências inteligentes do usuário, base para a futura
--- camada de IA (Sprint 03+).
+-- Preferências inteligentes do usuário, base para a futura camada de IA.
 create table if not exists user_preferences (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) not null,
@@ -45,16 +36,12 @@ create table if not exists user_preferences (
 -- Segurança: cada pessoa só acessa os próprios dados.
 alter table profiles enable row level security;
 alter table settings enable row level security;
-alter table integrations enable row level security;
 alter table user_preferences enable row level security;
 
 create policy "profiles: dono acessa" on profiles
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create policy "settings: dono acessa" on settings
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
-create policy "integrations: dono acessa" on integrations
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create policy "user_preferences: dono acessa" on user_preferences

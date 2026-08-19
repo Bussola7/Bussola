@@ -4,8 +4,8 @@ import 'package:bussola/features/agenda/data/models/enums.dart';
 /// Representa uma linha da tabela `events`.
 ///
 /// `recurrenceType` guarda apenas o TIPO da recorrência (ex: semanal,
-/// diário) — o cálculo das ocorrências futuras é feito por um serviço que
-/// ainda não existe nesta etapa (entra na Etapa de Recorrência).
+/// diário) — o cálculo das ocorrências futuras é feito por um serviço
+/// separado.
 ///
 /// `deletedAt` implementa soft delete: quando preenchido, o evento está
 /// "excluído" mas continua no banco (nenhuma consulta do datasource o
@@ -34,19 +34,6 @@ class EventModel {
   final String? createdBy;
   final String? updatedBy;
   final DateTime? deletedAt;
-  final String? googleEventId;
-  final String? outlookEventId;
-  final DateTime? lastSyncedAt;
-  final SyncOrigin syncOrigin;
-  // Campos por provedor (migration 0011) — corrige a interferência entre
-  // Google e Outlook que `lastSyncedAt`/`syncOrigin` (únicos, acima)
-  // causavam quando os dois estavam conectados ao mesmo tempo. Os campos
-  // antigos continuam existindo (nenhum dado apagado), mas a lógica de
-  // sincronização agora usa só os novos.
-  final DateTime? googleLastSyncedAt;
-  final DateTime? outlookLastSyncedAt;
-  final SyncOrigin? googleSyncOrigin;
-  final SyncOrigin? outlookSyncOrigin;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -72,14 +59,6 @@ class EventModel {
     this.createdBy,
     this.updatedBy,
     this.deletedAt,
-    this.googleEventId,
-    this.outlookEventId,
-    this.lastSyncedAt,
-    this.syncOrigin = SyncOrigin.local,
-    this.googleLastSyncedAt,
-    this.outlookLastSyncedAt,
-    this.googleSyncOrigin,
-    this.outlookSyncOrigin,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -129,21 +108,12 @@ class EventModel {
       createdBy: json['created_by'] as String?,
       updatedBy: json['updated_by'] as String?,
       deletedAt: json['deleted_at'] == null ? null : DateTime.parse(json['deleted_at'] as String),
-      googleEventId: json['google_event_id'] as String?,
-      outlookEventId: json['outlook_event_id'] as String?,
-      lastSyncedAt: json['last_synced_at'] == null ? null : DateTime.parse(json['last_synced_at'] as String),
-      syncOrigin: SyncOriginX.fromDb(json['sync_origin'] as String? ?? 'local'),
-      googleLastSyncedAt: json['google_last_synced_at'] == null ? null : DateTime.parse(json['google_last_synced_at'] as String),
-      outlookLastSyncedAt: json['outlook_last_synced_at'] == null ? null : DateTime.parse(json['outlook_last_synced_at'] as String),
-      googleSyncOrigin: json['google_sync_origin'] == null ? null : SyncOriginX.fromDb(json['google_sync_origin'] as String),
-      outlookSyncOrigin: json['outlook_sync_origin'] == null ? null : SyncOriginX.fromDb(json['outlook_sync_origin'] as String),
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 
-  /// Serialização completa (todas as colunas). Usada para depuração,
-  /// cache local ou qualquer necessidade futura fora do CRUD via Supabase.
+  /// Serialização completa (todas as colunas).
   Map<String, dynamic> toJson() => {
         'id': id,
         'calendar_id': calendarId,
@@ -165,14 +135,6 @@ class EventModel {
         'created_by': createdBy,
         'updated_by': updatedBy,
         'deleted_at': deletedAt?.toUtc().toIso8601String(),
-        'google_event_id': googleEventId,
-        'outlook_event_id': outlookEventId,
-        'last_synced_at': lastSyncedAt?.toUtc().toIso8601String(),
-        'sync_origin': syncOrigin.toDb(),
-        'google_last_synced_at': googleLastSyncedAt?.toUtc().toIso8601String(),
-        'outlook_last_synced_at': outlookLastSyncedAt?.toUtc().toIso8601String(),
-        'google_sync_origin': googleSyncOrigin?.toDb(),
-        'outlook_sync_origin': outlookSyncOrigin?.toDb(),
         'created_at': createdAt.toUtc().toIso8601String(),
         'updated_at': updatedAt.toUtc().toIso8601String(),
       };
@@ -196,14 +158,6 @@ class EventModel {
         'recurrence_rule': _recurrenceRuleForDb,
         'recurrence_until': recurrenceUntil?.toUtc().toIso8601String(),
         'recurrence_count': recurrenceCount,
-        'google_event_id': googleEventId,
-        'outlook_event_id': outlookEventId,
-        'last_synced_at': lastSyncedAt?.toUtc().toIso8601String(),
-        'sync_origin': syncOrigin.toDb(),
-        'google_last_synced_at': googleLastSyncedAt?.toUtc().toIso8601String(),
-        'outlook_last_synced_at': outlookLastSyncedAt?.toUtc().toIso8601String(),
-        'google_sync_origin': googleSyncOrigin?.toDb(),
-        'outlook_sync_origin': outlookSyncOrigin?.toDb(),
         'created_by': createdBy ?? userId,
         'updated_by': updatedBy ?? userId,
       };
@@ -223,14 +177,6 @@ class EventModel {
         'recurrence_rule': _recurrenceRuleForDb,
         'recurrence_until': recurrenceUntil?.toUtc().toIso8601String(),
         'recurrence_count': recurrenceCount,
-        'google_event_id': googleEventId,
-        'outlook_event_id': outlookEventId,
-        'last_synced_at': lastSyncedAt?.toUtc().toIso8601String(),
-        'sync_origin': syncOrigin.toDb(),
-        'google_last_synced_at': googleLastSyncedAt?.toUtc().toIso8601String(),
-        'outlook_last_synced_at': outlookLastSyncedAt?.toUtc().toIso8601String(),
-        'google_sync_origin': googleSyncOrigin?.toDb(),
-        'outlook_sync_origin': outlookSyncOrigin?.toDb(),
         'updated_by': updatedByUserId ?? updatedBy,
       };
 
@@ -251,14 +197,6 @@ class EventModel {
     int? recurrenceCount,
     String? updatedBy,
     DateTime? deletedAt,
-    String? googleEventId,
-    String? outlookEventId,
-    DateTime? lastSyncedAt,
-    SyncOrigin? syncOrigin,
-    DateTime? googleLastSyncedAt,
-    DateTime? outlookLastSyncedAt,
-    SyncOrigin? googleSyncOrigin,
-    SyncOrigin? outlookSyncOrigin,
   }) {
     return EventModel(
       id: id,
@@ -282,14 +220,6 @@ class EventModel {
       createdBy: createdBy,
       updatedBy: updatedBy ?? this.updatedBy,
       deletedAt: deletedAt ?? this.deletedAt,
-      googleEventId: googleEventId ?? this.googleEventId,
-      outlookEventId: outlookEventId ?? this.outlookEventId,
-      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
-      syncOrigin: syncOrigin ?? this.syncOrigin,
-      googleLastSyncedAt: googleLastSyncedAt ?? this.googleLastSyncedAt,
-      outlookLastSyncedAt: outlookLastSyncedAt ?? this.outlookLastSyncedAt,
-      googleSyncOrigin: googleSyncOrigin ?? this.googleSyncOrigin,
-      outlookSyncOrigin: outlookSyncOrigin ?? this.outlookSyncOrigin,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -319,15 +249,7 @@ class EventModel {
         other.recurrenceCount == recurrenceCount &&
         other.createdBy == createdBy &&
         other.updatedBy == updatedBy &&
-        other.deletedAt == deletedAt &&
-        other.googleEventId == googleEventId &&
-        other.outlookEventId == outlookEventId &&
-        other.lastSyncedAt == lastSyncedAt &&
-        other.googleLastSyncedAt == googleLastSyncedAt &&
-        other.outlookLastSyncedAt == outlookLastSyncedAt &&
-        other.googleSyncOrigin == googleSyncOrigin &&
-        other.outlookSyncOrigin == outlookSyncOrigin &&
-        other.syncOrigin == syncOrigin;
+        other.deletedAt == deletedAt;
   }
 
   @override
@@ -353,14 +275,6 @@ class EventModel {
         createdBy,
         updatedBy,
         deletedAt,
-        googleEventId,
-        outlookEventId,
-        lastSyncedAt,
-        googleLastSyncedAt,
-        outlookLastSyncedAt,
-        googleSyncOrigin,
-        outlookSyncOrigin,
-        syncOrigin,
       ]);
 
   @override

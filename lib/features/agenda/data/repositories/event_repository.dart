@@ -29,17 +29,6 @@ class EventRepository {
     return row == null ? null : EventModel.fromJson(row);
   }
 
-  Future<EventModel?> getByGoogleEventId({required String userId, required String googleEventId}) async {
-    final row = await _dataSource.fetchByGoogleEventId(userId: userId, googleEventId: googleEventId);
-    return row == null ? null : EventModel.fromJson(row);
-  }
-
-  /// Espelha `getByGoogleEventId` para o Outlook.
-  Future<EventModel?> getByOutlookEventId({required String userId, required String outlookEventId}) async {
-    final row = await _dataSource.fetchByOutlookEventId(userId: userId, outlookEventId: outlookEventId);
-    return row == null ? null : EventModel.fromJson(row);
-  }
-
   Future<List<EventModel>> getAllActive(String userId) async {
     final rows = await _dataSource.fetchAllActive(userId);
     return rows.map(EventModel.fromJson).toList();
@@ -67,11 +56,6 @@ class EventRepository {
   Future<void> reassignCategory({required String userId, required String fromCategoryId, required String toCategoryId}) {
     return _dataSource.reassignCategory(userId: userId, fromCategoryId: fromCategoryId, toCategoryId: toCategoryId);
   }
-
-  Future<void> clearGoogleEventId(String id) => _dataSource.clearGoogleEventId(id);
-
-  /// Espelha `clearGoogleEventId` para o Outlook.
-  Future<void> clearOutlookEventId(String id) => _dataSource.clearOutlookEventId(id);
 
   Future<List<ReminderModel>> getReminders(String eventId) async {
     final rows = await _dataSource.fetchReminders(eventId);

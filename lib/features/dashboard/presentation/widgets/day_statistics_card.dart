@@ -5,7 +5,7 @@ import 'package:bussola/core/theme/app_colors.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
 import 'package:bussola/features/agenda/presentation/providers/day_intelligence_provider.dart';
 
-/// Cartão "📊 Estatísticas": eventos do dia, horas ocupadas/livres e
+/// Cartão "\u{1F4CA} Estatísticas": eventos do dia, horas ocupadas/livres e
 /// maior intervalo livre — lê o mesmo resultado já calculado que o
 /// "Norte do Dia" usa (nenhum cálculo duplicado).
 class DayStatisticsCard extends ConsumerWidget {
@@ -24,7 +24,7 @@ class DayStatisticsCard extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('📊 Estatísticas', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
+              Text('\u{1F4CA} Estatísticas', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 12),
               Row(
                 children: [
