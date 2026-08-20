@@ -4,7 +4,7 @@ import 'package:bussola/core/components/app_card.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
 import 'package:bussola/features/agenda/presentation/providers/day_intelligence_provider.dart';
 
-/// Cartão "🧭 Norte do Dia": resumo do dia gerado só com regras de
+/// Cartão "\u{1F9ED} Norte do Dia": resumo do dia gerado só com regras de
 /// negócio (contagens + tempo livre) — nenhuma chamada de IA. Lê o
 /// resultado já calculado do `dayIntelligenceProvider`.
 class NorthOfDayCard extends ConsumerWidget {
@@ -23,7 +23,7 @@ class NorthOfDayCard extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('🧭 Norte do Dia', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
+              Text('\u{1F9ED} Norte do Dia', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 10),
               Text('Bom dia!', style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),

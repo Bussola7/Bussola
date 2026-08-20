@@ -11,7 +11,7 @@ import 'package:bussola/features/agenda/presentation/widgets/category_chip.dart'
 /// Paleta e ícones fixos para categorias personalizadas — mantém a
 /// criação rápida (sem um color-picker complexo) e alinhada ao Design System.
 const _paletaCores = ['#2563EB', '#10B981', '#EF4444', '#F59E0B', '#A855F7', '#0EA5E9', '#14B8A6', '#F97316'];
-const _paletaIcones = ['📌', '🎯', '🧩', '🎨', '🐾', '🎵', '🧘', '💡'];
+const _paletaIcones = ['\u{1F4CC}', '\u{1F3AF}', '\u{1F9E9}', '\u{1F3A8}', '\u{1F43E}', '\u{1F3B5}', '\u{1F9D8}', '\u{1F4A1}'];
 
 /// Modal para escolher a categoria de um evento — lista as categorias do
 /// usuário como chips e permite criar uma personalizada na hora.

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bussola/core/theme/app_colors.dart';
 
-/// Navegação inferior do app: Hoje, Agenda, Criar, IA, Perfil.
-/// As telas "Agenda", "Criar" e "IA" ainda são placeholders — este componente
-/// não sabe disso, ele só recebe o índice atual e avisa quando muda.
+/// Navegação inferior do app: Hoje, Tarefas, Agenda, Objetivos, Performance.
 class AppBottomNavigation extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -25,10 +23,10 @@ class AppBottomNavigation extends StatelessWidget {
       showUnselectedLabels: true,
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), activeIcon: Icon(Icons.explore), label: 'Hoje'),
+        BottomNavigationBarItem(icon: Icon(Icons.check_circle_outline), activeIcon: Icon(Icons.check_circle), label: 'Tarefas'),
         BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), activeIcon: Icon(Icons.calendar_today), label: 'Agenda'),
-        BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), activeIcon: Icon(Icons.add_circle), label: 'Criar'),
-        BottomNavigationBarItem(icon: Icon(Icons.auto_awesome_outlined), activeIcon: Icon(Icons.auto_awesome), label: 'IA'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Perfil'),
+        BottomNavigationBarItem(icon: Icon(Icons.flag_outlined), activeIcon: Icon(Icons.flag), label: 'Objetivos'),
+        BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), activeIcon: Icon(Icons.bar_chart), label: 'Performance'),
       ],
     );
   }

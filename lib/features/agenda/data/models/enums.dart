@@ -142,26 +142,4 @@ extension ParticipantStatusX on ParticipantStatus {
   String toDb() => name;
 }
 
-/// De onde este evento "nasceu" — usado pela sincronização com Google
-/// Calendar (Sprint 03). `synced` significa que já existe dos dois lados
-/// e está alinhado; `local`/`google` indicam qual lado ainda não viu a
-/// versão mais recente.
-enum SyncOrigin { local, google, outlook, synced }
 
-extension SyncOriginX on SyncOrigin {
-  static SyncOrigin fromDb(String value) {
-    switch (value) {
-      case 'google':
-        return SyncOrigin.google;
-      case 'outlook':
-        return SyncOrigin.outlook;
-      case 'synced':
-        return SyncOrigin.synced;
-      case 'local':
-      default:
-        return SyncOrigin.local;
-    }
-  }
-
-  String toDb() => name;
-}

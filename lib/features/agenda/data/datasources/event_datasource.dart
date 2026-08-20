@@ -44,34 +44,8 @@ class EventDataSource {
     return _client.from(_eventsTable).select().eq('id', id).filter('deleted_at', 'is', null).maybeSingle();
   }
 
-  /// Usado pela sincronização com o Google Calendar: encontra o evento
-  /// local que já corresponde a um evento do Google (se existir).
-  Future<Map<String, dynamic>?> fetchByGoogleEventId({required String userId, required String googleEventId}) async {
-    return _client
-        .from(_eventsTable)
-        .select()
-        .eq('user_id', userId)
-        .eq('google_event_id', googleEventId)
-        .maybeSingle();
-  }
-
-  /// Espelha `fetchByGoogleEventId` para o Outlook (Etapa pós-1.15 —
-  /// correção da limitação de vínculo multi-provedor). Uma coluna
-  /// separada (`outlook_event_id`) — não a mesma `google_event_id` —
-  /// porque um evento pode estar vinculado aos dois provedores ao mesmo
-  /// tempo, se a pessoa tiver os dois conectados.
-  Future<Map<String, dynamic>?> fetchByOutlookEventId({required String userId, required String outlookEventId}) async {
-    return _client
-        .from(_eventsTable)
-        .select()
-        .eq('user_id', userId)
-        .eq('outlook_event_id', outlookEventId)
-        .maybeSingle();
-  }
-
   /// Todos os eventos ativos (não excluídos) de um usuário, sem filtro de
-  /// período — usado pela sincronização, que precisa avaliar TODOS os
-  /// eventos pendentes de envio ao Google, não só os de um mês específico.
+  /// período — usado pela tela "Hoje" e por relatórios de performance.
   Future<List<Map<String, dynamic>>> fetchAllActive(String userId) async {
     final response = await _client.from(_eventsTable).select().eq('user_id', userId).filter('deleted_at', 'is', null);
     return List<Map<String, dynamic>>.from(response);
@@ -124,21 +98,6 @@ class EventDataSource {
         .update({'category_id': toCategoryId})
         .eq('user_id', userId)
         .eq('category_id', fromCategoryId);
-  }
-
-  /// Usado depois que uma exclusão local já foi propagada com sucesso ao
-  /// Google Calendar: limpa `google_event_id` para a sincronização
-  /// seguinte não tentar excluir de novo o mesmo evento no Google
-  /// (a chamada seria inofensiva — o Google devolve 410 — mas
-  /// desnecessária, e a etapa pede para evitar chamadas repetidas).
-  Future<void> clearGoogleEventId(String id) async {
-    await _client.from(_eventsTable).update({'google_event_id': null}).eq('id', id);
-  }
-
-  /// Espelha `clearGoogleEventId` para o Outlook — mesmo motivo, mesma
-  /// garantia contra chamadas repetidas de exclusão.
-  Future<void> clearOutlookEventId(String id) async {
-    await _client.from(_eventsTable).update({'outlook_event_id': null}).eq('id', id);
   }
 
   // ---- event_reminders ----
