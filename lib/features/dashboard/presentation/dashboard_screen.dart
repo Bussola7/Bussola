@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bussola/core/components/app_card.dart';
 import 'package:bussola/core/theme/app_colors.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
-import 'package:bussola/features/agenda/data/models/enums.dart';
+import 'package:bussola/features/dashboard/domain/dashboard_calculator.dart';
 import 'package:bussola/features/dashboard/presentation/widgets/day_statistics_card.dart';
 import 'package:bussola/features/dashboard/presentation/widgets/north_of_day_card.dart';
-import 'package:bussola/features/tasks/data/models/task_model.dart';
 import 'package:bussola/features/tasks/presentation/providers/task_provider.dart';
 import 'package:bussola/shared/models/life_area.dart';
 
@@ -28,6 +27,8 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  final _calculator = DashboardCalculator();
+
   @override
   void initState() {
     super.initState();
@@ -36,34 +37,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     });
   }
 
-  /// As 3 tarefas pendentes de maior prioridade — não precisam ser "de
-  /// hoje": são as 3 coisas mais importantes para a pessoa olhar primeiro.
-  List<TaskModel> _prioridades(List<TaskModel> tasks) {
-    final pendentes = tasks.where((t) => !t.isConcluida).toList();
-    const ordem = {Priority.muitoAlta: 0, Priority.alta: 1, Priority.media: 2, Priority.baixa: 3};
-    pendentes.sort((a, b) => ordem[a.priority]!.compareTo(ordem[b.priority]!));
-    return pendentes.take(3).toList();
-  }
-
-  String _formatarData(DateTime data) {
-    const meses = [
-      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
-    ];
-    return '${data.day} de ${meses[data.month - 1]}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final taskState = ref.watch(taskNotifierProvider);
-    final prioridades = _prioridades(taskState.tasks);
+    final prioridades = _calculator.prioridades(taskState.tasks);
     final tarefasHoje = taskState.hoje;
     final atrasadas = taskState.atrasadas;
-    final concluidasHoje = taskState.tasks.where((t) {
-      if (t.completedAt == null) return false;
-      final hoje = DateTime.now();
-      return t.completedAt!.year == hoje.year && t.completedAt!.month == hoje.month && t.completedAt!.day == hoje.day;
-    }).length;
+    final concluidasHoje = _calculator.concluidasHoje(taskState.tasks);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -79,7 +59,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Bom dia, ${widget.nomeUsuario} \u{1F44B}', style: AppTextStyles.heading2),
-                    Text(_formatarData(DateTime.now()), style: AppTextStyles.bodyMuted),
+                    Text(_calculator.formatarData(DateTime.now()), style: AppTextStyles.bodyMuted),
                   ],
                 ),
               ),
