@@ -3,10 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bussola/core/components/app_card.dart';
 import 'package:bussola/core/theme/app_colors.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
-import 'package:bussola/features/agenda/data/models/enums.dart';
 import 'package:bussola/features/auth/domain/auth_controller.dart';
 import 'package:bussola/features/goals/presentation/providers/goal_provider.dart';
-import 'package:bussola/features/tasks/data/models/task_model.dart';
+import 'package:bussola/features/performance/domain/performance_calculator.dart';
 import 'package:bussola/features/tasks/presentation/providers/task_provider.dart';
 
 /// Tela "Performance": indicadores simples de execução, calculados só a
@@ -19,6 +18,8 @@ class PerformanceScreen extends ConsumerStatefulWidget {
 }
 
 class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
+  final _calculator = PerformanceCalculator();
+
   @override
   void initState() {
     super.initState();
@@ -32,27 +33,6 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
     });
   }
 
-  /// Quantas tarefas de PRIORIDADE ALTA/MUITO ALTA foram concluídas —
-  /// interpretação de "prioridades concluídas" pedida no briefing.
-  int _prioridadesConcluidas(List<TaskModel> tasks) {
-    return tasks.where((t) => t.isConcluida && (t.priority == Priority.alta || t.priority == Priority.muitoAlta)).length;
-  }
-
-  /// Tarefas concluídas em cada um dos últimos 7 dias (hoje incluso),
-  /// para o gráfico simples de evolução semanal.
-  List<int> _evolucaoSemanal(List<TaskModel> tasks) {
-    final hoje = DateTime.now();
-    final hojeSemHora = DateTime(hoje.year, hoje.month, hoje.day);
-    return List.generate(7, (i) {
-      final dia = hojeSemHora.subtract(Duration(days: 6 - i));
-      return tasks.where((t) {
-        if (t.completedAt == null) return false;
-        final c = t.completedAt!;
-        return c.year == dia.year && c.month == dia.month && c.day == dia.day;
-      }).length;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final taskState = ref.watch(taskNotifierProvider);
@@ -60,9 +40,9 @@ class _PerformanceScreenState extends ConsumerState<PerformanceScreen> {
 
     final concluidas = taskState.concluidas.length;
     final atrasadas = taskState.atrasadas.length;
-    final prioridadesConcluidas = _prioridadesConcluidas(taskState.tasks);
+    final prioridadesConcluidas = _calculator.prioridadesConcluidas(taskState.tasks);
     final objetivosEmAndamento = goalState.emAndamento.length;
-    final evolucao = _evolucaoSemanal(taskState.tasks);
+    final evolucao = _calculator.evolucaoSemanal(taskState.tasks);
     final maxEvolucao = evolucao.isEmpty ? 1 : (evolucao.reduce((a, b) => a > b ? a : b)).clamp(1, 999);
 
     return Scaffold(
