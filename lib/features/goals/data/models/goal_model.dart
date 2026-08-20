@@ -77,6 +77,7 @@ class GoalModel {
     GoalStatus? status,
     DateTime? completedAt,
     bool clearDueDate = false,
+    bool clearCompletedAt = false,
   }) {
     return GoalModel(
       id: id,
@@ -87,7 +88,7 @@ class GoalModel {
       dueDate: clearDueDate ? null : (dueDate ?? this.dueDate),
       progressPercent: progressPercent ?? this.progressPercent,
       status: status ?? this.status,
-      completedAt: completedAt ?? this.completedAt,
+      completedAt: clearCompletedAt ? null : (completedAt ?? this.completedAt),
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
