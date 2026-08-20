@@ -6,6 +6,12 @@ import 'package:bussola/core/services/supabase_service.dart';
 /// produtividade" da pessoa (horários preferidos, modo de planejamento,
 /// se a IA está ativada, etc.) — é a base de dados que o módulo de IA
 /// vai consumir quando for construído.
+///
+/// Reservado para uso futuro: nenhuma tela chama esta classe ainda —
+/// mesmo status de `lib/features/organizations/`, só que aqui já
+/// existe código (o formato dos dados que o módulo de IA vai usar),
+/// em vez de só a pasta reservada. Não é código morto por remoção;
+/// é preparação para uma feature que ainda não chegou.
 class UserPreferencesRepository {
   SupabaseClient get _client => SupabaseService.client;
 
