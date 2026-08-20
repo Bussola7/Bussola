@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:bussola/core/components/app_scaffold.dart';
 import 'package:bussola/features/agenda/presentation/screens/calendar_screen.dart';
 import 'package:bussola/features/auth/domain/auth_controller.dart';
@@ -39,7 +40,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             builder: (_) => ProfileScreen(
               nome: nome,
               email: email,
-              onLogout: () => ref.read(authNotifierProvider.notifier).logout(),
+              onLogout: () async {
+                await ref.read(authNotifierProvider.notifier).logout();
+                if (context.mounted) context.go('/login');
+              },
             ),
           ),
         ),
