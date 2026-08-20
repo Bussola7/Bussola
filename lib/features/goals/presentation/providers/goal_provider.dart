@@ -54,6 +54,7 @@ class GoalNotifier extends StateNotifier<GoalListState> {
       progressPercent: novoPercentual.clamp(0, 100),
       status: concluido ? GoalStatus.concluido : GoalStatus.emAndamento,
       completedAt: concluido ? DateTime.now() : null,
+      clearCompletedAt: !concluido,
     );
     await update(atualizado);
   }
