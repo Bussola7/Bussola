@@ -92,6 +92,7 @@ class TaskModel {
     DateTime? dueDate,
     DateTime? completedAt,
     bool clearDueDate = false,
+    bool clearCompletedAt = false,
   }) {
     return TaskModel(
       id: id,
@@ -102,7 +103,7 @@ class TaskModel {
       priority: priority ?? this.priority,
       status: status ?? this.status,
       dueDate: clearDueDate ? null : (dueDate ?? this.dueDate),
-      completedAt: completedAt ?? this.completedAt,
+      completedAt: clearCompletedAt ? null : (completedAt ?? this.completedAt),
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
