@@ -30,7 +30,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await _repository.signOut();
-    state = state.copyWith(user: null);
+    state = state.copyWith(clearUser: true);
   }
 
   Future<bool> _runGuarded(Future<dynamic> Function() action) async {
