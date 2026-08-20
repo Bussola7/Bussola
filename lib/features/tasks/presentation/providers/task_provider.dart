@@ -52,6 +52,7 @@ class TaskNotifier extends StateNotifier<TaskListState> {
     final atualizada = task.copyWith(
       status: task.isConcluida ? TaskStatus.pendente : TaskStatus.concluida,
       completedAt: task.isConcluida ? null : DateTime.now(),
+      clearCompletedAt: task.isConcluida,
     );
     await update(atualizada);
   }
