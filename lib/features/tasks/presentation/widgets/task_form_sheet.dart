@@ -67,6 +67,7 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
     final agora = DateTime.now();
     final notifier = ref.read(taskNotifierProvider.notifier);
 
+    bool sucesso;
     if (_editando) {
       final atualizada = widget.tarefaExistente!.copyWith(
         title: _titleController.text.trim(),
@@ -76,7 +77,7 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
         dueDate: _dueDate,
         clearDueDate: _dueDate == null,
       );
-      await notifier.update(atualizada);
+      sucesso = await notifier.update(atualizada);
     } else {
       final nova = TaskModel(
         id: '',
@@ -89,10 +90,18 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
         createdAt: agora,
         updatedAt: agora,
       );
-      await notifier.create(nova);
+      sucesso = await notifier.create(nova);
     }
 
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    setState(() => _salvando = false);
+
+    if (sucesso) {
+      Navigator.of(context).pop();
+    } else {
+      final erro = ref.read(taskNotifierProvider).errorMessage ?? 'Não foi possível salvar a tarefa.';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(erro)));
+    }
   }
 
   Future<void> _excluir() async {

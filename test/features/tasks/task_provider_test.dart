@@ -34,9 +34,16 @@ TaskModel _buildTask({
 class _FakeTaskRepository extends TaskRepository {
   final List<TaskModel> existentes;
   final bool falharAoCarregar;
+  final bool falharAoCriar;
+  final bool falharAoAtualizar;
   TaskModel? lastUpdated;
 
-  _FakeTaskRepository({this.existentes = const [], this.falharAoCarregar = false});
+  _FakeTaskRepository({
+    this.existentes = const [],
+    this.falharAoCarregar = false,
+    this.falharAoCriar = false,
+    this.falharAoAtualizar = false,
+  });
 
   @override
   Future<List<TaskModel>> getAll(String userId) async {
@@ -45,10 +52,14 @@ class _FakeTaskRepository extends TaskRepository {
   }
 
   @override
-  Future<TaskModel> create(TaskModel task) async => task;
+  Future<TaskModel> create(TaskModel task) async {
+    if (falharAoCriar) throw Exception('Falha simulada de rede');
+    return task;
+  }
 
   @override
   Future<TaskModel> update(TaskModel task) async {
+    if (falharAoAtualizar) throw Exception('Falha simulada de rede');
     lastUpdated = task;
     return task;
   }
@@ -83,12 +94,23 @@ void main() {
   });
 
   group('TaskNotifier.create', () {
-    test('adiciona a tarefa criada ao estado', () async {
+    test('adiciona a tarefa criada ao estado e retorna true', () async {
       final notifier = TaskNotifier(repository: _FakeTaskRepository());
 
-      await notifier.create(_buildTask(id: 'nova'));
+      final sucesso = await notifier.create(_buildTask(id: 'nova'));
 
+      expect(sucesso, true);
       expect(notifier.state.tasks.map((t) => t.id), contains('nova'));
+    });
+
+    test('em caso de erro, não altera a lista e define errorMessage', () async {
+      final notifier = TaskNotifier(repository: _FakeTaskRepository(falharAoCriar: true));
+
+      final sucesso = await notifier.create(_buildTask(id: 'nova'));
+
+      expect(sucesso, false);
+      expect(notifier.state.tasks, isEmpty);
+      expect(notifier.state.errorMessage, isNotNull);
     });
   });
 
@@ -99,11 +121,24 @@ void main() {
       await notifier.create(_buildTask(id: 'task-1', title: 'Original'));
       await notifier.create(_buildTask(id: 'task-2', title: 'Outra'));
 
-      await notifier.update(_buildTask(id: 'task-1', title: 'Editada'));
+      final sucesso = await notifier.update(_buildTask(id: 'task-1', title: 'Editada'));
 
+      expect(sucesso, true);
       final atualizada = notifier.state.tasks.firstWhere((t) => t.id == 'task-1');
       expect(atualizada.title, 'Editada');
       expect(notifier.state.tasks.firstWhere((t) => t.id == 'task-2').title, 'Outra');
+    });
+
+    test('em caso de erro, mantém a tarefa original e define errorMessage', () async {
+      final repo = _FakeTaskRepository(falharAoAtualizar: true, existentes: [_buildTask(id: 'task-1', title: 'Original')]);
+      final notifier = TaskNotifier(repository: repo);
+      await notifier.load('user-1');
+
+      final sucesso = await notifier.update(_buildTask(id: 'task-1', title: 'Editada'));
+
+      expect(sucesso, false);
+      expect(notifier.state.tasks.firstWhere((t) => t.id == 'task-1').title, 'Original');
+      expect(notifier.state.errorMessage, isNotNull);
     });
   });
 
