@@ -38,23 +38,38 @@ class TaskNotifier extends StateNotifier<TaskListState> {
     }
   }
 
-  Future<void> create(TaskModel task) async {
-    final criada = await _repository.create(task);
-    state = state.copyWith(tasks: [...state.tasks, criada]);
+  Future<bool> create(TaskModel task) async {
+    try {
+      final criada = await _repository.create(task);
+      state = state.copyWith(tasks: [...state.tasks, criada], errorMessage: null);
+      return true;
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Não foi possível criar a tarefa.');
+      return false;
+    }
   }
 
-  Future<void> update(TaskModel task) async {
-    final atualizada = await _repository.update(task);
-    state = state.copyWith(tasks: [for (final t in state.tasks) if (t.id == atualizada.id) atualizada else t]);
+  Future<bool> update(TaskModel task) async {
+    try {
+      final atualizada = await _repository.update(task);
+      state = state.copyWith(
+        tasks: [for (final t in state.tasks) if (t.id == atualizada.id) atualizada else t],
+        errorMessage: null,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Não foi possível atualizar a tarefa.');
+      return false;
+    }
   }
 
-  Future<void> toggleConcluida(TaskModel task) async {
+  Future<bool> toggleConcluida(TaskModel task) async {
     final atualizada = task.copyWith(
       status: task.isConcluida ? TaskStatus.pendente : TaskStatus.concluida,
       completedAt: task.isConcluida ? null : DateTime.now(),
       clearCompletedAt: task.isConcluida,
     );
-    await update(atualizada);
+    return update(atualizada);
   }
 
   Future<void> delete(String id) async {
