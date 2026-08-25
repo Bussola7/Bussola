@@ -15,6 +15,7 @@ dependencies:
   flutter_dotenv: ^5.1.0
   shared_preferences: ^2.2.3
   flutter_riverpod: ^2.5.1
+  speech_to_text: ^7.4.0
 
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:bussola/core/components/custom_text_field.dart';
 import 'package:bussola/core/components/primary_button.dart';
 import 'package:bussola/core/components/secondary_button.dart';
@@ -30,6 +31,10 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
   DateTime? _dueDate;
   bool _salvando = false;
 
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechDisponivel = false;
+  bool _ouvindo = false;
+
   bool get _editando => widget.tarefaExistente != null;
 
   @override
@@ -41,13 +46,37 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
     _area = t?.area ?? LifeArea.pessoal;
     _priority = t?.priority ?? Priority.media;
     _dueDate = t?.dueDate;
+
+    _speech.initialize().then((disponivel) {
+      if (mounted) setState(() => _speechDisponivel = disponivel);
+    });
   }
 
   @override
   void dispose() {
+    if (_ouvindo) _speech.stop();
     _titleController.dispose();
     _descriptionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _alternarEscuta() async {
+    if (_ouvindo) {
+      await _speech.stop();
+      if (mounted) setState(() => _ouvindo = false);
+      return;
+    }
+    setState(() => _ouvindo = true);
+    await _speech.listen(
+      localeId: 'pt_BR',
+      onResult: (resultado) {
+        setState(() {
+          _titleController.text = resultado.recognizedWords;
+          _titleController.selection = TextSelection.collapsed(offset: _titleController.text.length);
+          if (resultado.finalResult) _ouvindo = false;
+        });
+      },
+    );
   }
 
   Future<void> _escolherData() async {
@@ -125,7 +154,21 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
           children: [
             Text(_editando ? 'Editar tarefa' : 'Nova tarefa', style: AppTextStyles.heading2),
             const SizedBox(height: 16),
-            CustomTextField(label: 'Título', controller: _titleController),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: CustomTextField(label: 'Título', controller: _titleController)),
+                if (_speechDisponivel) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _alternarEscuta,
+                    tooltip: _ouvindo ? 'Parar' : 'Ditar o título',
+                    icon: Icon(_ouvindo ? Icons.mic : Icons.mic_none),
+                    color: _ouvindo ? AppColors.error : AppColors.primary,
+                  ),
+                ],
+              ],
+            ),
             const SizedBox(height: 12),
             CustomTextField(label: 'Descrição (opcional)', controller: _descriptionController),
             const SizedBox(height: 16),
