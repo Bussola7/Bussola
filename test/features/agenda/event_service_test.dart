@@ -71,6 +71,15 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('REGRESSÃO: rejeita evento cujo horário final é igual ao inicial (duração zero)', () {
+      final horario = DateTime(2026, 8, 1, 10, 0);
+
+      expect(
+        () => service.createEvent(_buildEvent(start: horario, end: horario)),
+        throwsArgumentError,
+      );
+    });
   });
 
   group('EventService.deleteEvent', () {

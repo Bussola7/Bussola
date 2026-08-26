@@ -8,7 +8,14 @@ class EventFormatting {
 
   static String horario(EventModel event) {
     if (event.allDay) return 'Dia inteiro';
-    String hh(DateTime d) => '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    // .toLocal() é obrigatório: startDatetime/endDatetime vêm em UTC do
+    // banco, e sem converter pro fuso local, a hora mostrada sai errada
+    // (ex: eventos criados no Brasil aparecem 3h à frente do horário real).
+    String hh(DateTime d) {
+      final local = d.toLocal();
+      return '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+    }
+
     return '${hh(event.startDatetime)} – ${hh(event.endDatetime)}';
   }
 
