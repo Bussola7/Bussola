@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bussola/core/components/empty_state.dart';
 import 'package:bussola/core/components/loading_state.dart';
+import 'package:bussola/core/components/screen_hint.dart';
 import 'package:bussola/core/theme/app_colors.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
 import 'package:bussola/features/agenda/data/models/enums.dart';
@@ -56,30 +57,40 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body: state.isLoading
-          ? const LoadingState()
-          : state.tasks.isEmpty
-              ? const EmptyState(
-                  icon: Icons.check_circle_outline,
-                  title: 'Nenhuma tarefa ainda',
-                  message: 'Toque no botão "+" para criar sua primeira tarefa.',
-                )
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-                  children: [
-                    if (pendentes.isNotEmpty) ...[
-                      Text('Pendentes (${pendentes.length})', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      ...pendentes.map((t) => _TaskTile(task: t, onTap: () => _abrirFormulario(tarefaExistente: t))),
-                    ],
-                    if (concluidas.isNotEmpty) ...[
-                      const SizedBox(height: 20),
-                      Text('Concluídas (${concluidas.length})', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      ...concluidas.map((t) => _TaskTile(task: t, onTap: () => _abrirFormulario(tarefaExistente: t))),
-                    ],
-                  ],
-                ),
+      body: Column(
+        children: [
+          const ScreenHint(
+            text: 'Aqui você organiza suas tarefas do dia a dia: pendências, afazeres e pequenas ações que '
+                'precisam ser feitas — com prazo, prioridade e status de conclusão.',
+          ),
+          Expanded(
+            child: state.isLoading
+                ? const LoadingState()
+                : state.tasks.isEmpty
+                    ? const EmptyState(
+                        icon: Icons.check_circle_outline,
+                        title: 'Nenhuma tarefa ainda',
+                        message: 'Toque no botão "+" para criar sua primeira tarefa.',
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                        children: [
+                          if (pendentes.isNotEmpty) ...[
+                            Text('Pendentes (${pendentes.length})', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            ...pendentes.map((t) => _TaskTile(task: t, onTap: () => _abrirFormulario(tarefaExistente: t))),
+                          ],
+                          if (concluidas.isNotEmpty) ...[
+                            const SizedBox(height: 20),
+                            Text('Concluídas (${concluidas.length})', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            ...concluidas.map((t) => _TaskTile(task: t, onTap: () => _abrirFormulario(tarefaExistente: t))),
+                          ],
+                        ],
+                      ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -3,24 +3,36 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bussola/core/components/app_card.dart';
 import 'package:bussola/core/theme/app_colors.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
+import 'package:bussola/features/agenda/presentation/widgets/priority_badge.dart';
 import 'package:bussola/features/dashboard/domain/dashboard_calculator.dart';
-import 'package:bussola/features/dashboard/presentation/widgets/day_statistics_card.dart';
+import 'package:bussola/features/dashboard/presentation/widgets/next_action_card.dart';
 import 'package:bussola/features/dashboard/presentation/widgets/north_of_day_card.dart';
+import 'package:bussola/features/dashboard/presentation/widgets/performance_summary_card.dart';
+import 'package:bussola/features/goals/presentation/providers/goal_provider.dart';
+import 'package:bussola/features/tasks/data/models/task_model.dart';
 import 'package:bussola/features/tasks/presentation/providers/task_provider.dart';
-import 'package:bussola/shared/models/life_area.dart';
+import 'package:bussola/features/voice/presentation/widgets/voice_command_button.dart';
+import 'package:bussola/shared/widgets/life_area_badge.dart';
 
 /// Tela "Hoje": primeira tela que a pessoa vê depois de logada.
 ///
-/// Mostra, com dados reais (nada simulado): até 3 prioridades do dia,
-/// tarefas do dia, compromissos do dia (via "Norte do Dia"/"Estatísticas",
-/// que já usam a Agenda de verdade), tarefas atrasadas, e um resumo
-/// simples da execução do dia.
+/// Mostra, com dados reais (nada simulado): o resumo "Norte do Dia",
+/// uma sugestão de próxima ação, um resumo de desempenho (Performance
+/// não é mais aba própria), até 3 prioridades do dia, tarefas do dia e
+/// tarefas atrasadas.
 class DashboardScreen extends ConsumerStatefulWidget {
   final String nomeUsuario;
   final String userId;
   final VoidCallback? onAbrirPerfil;
+  final ValueChanged<int>? onNavigateToTab;
 
-  const DashboardScreen({super.key, required this.nomeUsuario, required this.userId, this.onAbrirPerfil});
+  const DashboardScreen({
+    super.key,
+    required this.nomeUsuario,
+    required this.userId,
+    this.onAbrirPerfil,
+    this.onNavigateToTab,
+  });
 
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
@@ -34,6 +46,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(taskNotifierProvider.notifier).load(widget.userId);
+      ref.read(goalNotifierProvider.notifier).load(widget.userId);
     });
   }
 
@@ -63,6 +76,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ],
                 ),
               ),
+              VoiceCommandButton(userId: widget.userId),
               if (widget.onAbrirPerfil != null)
                 IconButton(onPressed: widget.onAbrirPerfil, icon: const Icon(Icons.person_outline)),
             ],
@@ -70,7 +84,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const SizedBox(height: 24),
           NorthOfDayCard(userId: widget.userId),
           const SizedBox(height: 16),
-          DayStatisticsCard(userId: widget.userId),
+          NextActionCard(userId: widget.userId, onNavigateToTab: widget.onNavigateToTab),
+          const SizedBox(height: 16),
+          PerformanceSummaryCard(userId: widget.userId),
           const SizedBox(height: 24),
 
           if (atrasadas.isNotEmpty) ...[
@@ -102,7 +118,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           if (prioridades.isEmpty)
             Text('Nenhuma tarefa pendente — bom trabalho! \u{1F389}', style: AppTextStyles.bodyMuted)
           else
-            ...prioridades.map((t) => _ResumoTile(titulo: t.title, subtitulo: t.area.label)),
+            ...prioridades.map((t) => _ResumoTile(task: t)),
 
           const SizedBox(height: 20),
           Text('Tarefas de hoje', style: AppTextStyles.heading2),
@@ -110,7 +126,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           if (tarefasHoje.isEmpty)
             Text('Nenhuma tarefa com prazo para hoje.', style: AppTextStyles.bodyMuted)
           else
-            ...tarefasHoje.map((t) => _ResumoTile(titulo: t.title, subtitulo: t.area.label)),
+            ...tarefasHoje.map((t) => _ResumoTile(task: t)),
 
           const SizedBox(height: 20),
           AppCard(
@@ -134,10 +150,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 }
 
 class _ResumoTile extends StatelessWidget {
-  final String titulo;
-  final String subtitulo;
+  final TaskModel task;
 
-  const _ResumoTile({required this.titulo, required this.subtitulo});
+  const _ResumoTile({required this.task});
 
   @override
   Widget build(BuildContext context) {
@@ -147,8 +162,11 @@ class _ResumoTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: Row(
           children: [
-            Expanded(child: Text(titulo, style: AppTextStyles.body)),
-            Text(subtitulo, style: AppTextStyles.bodyMuted.copyWith(fontSize: 12)),
+            PriorityBadge(priority: task.priority),
+            const SizedBox(width: 10),
+            Expanded(child: Text(task.title, style: AppTextStyles.body)),
+            const SizedBox(width: 8),
+            LifeAreaBadge(area: task.area),
           ],
         ),
       ),

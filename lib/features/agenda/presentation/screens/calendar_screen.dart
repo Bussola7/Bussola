@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bussola/core/components/screen_hint.dart';
 import 'package:bussola/core/utils/date_formatting.dart';
 import 'package:bussola/features/agenda/data/models/calendar_model.dart';
 import 'package:bussola/features/agenda/presentation/providers/calendar_provider.dart';
@@ -101,6 +102,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       children: [
         Column(
           children: [
+            const ScreenHint(
+              text: 'Aqui você organiza seus compromissos com data e horário marcados: reuniões, eventos, '
+                  'consultas e qualquer compromisso que tenha um momento específico.',
+            ),
             CalendarHeader(
               title: _titleFor(uiState),
               viewMode: uiState.viewMode,

@@ -6,14 +6,14 @@ import 'package:bussola/features/agenda/presentation/screens/calendar_screen.dar
 import 'package:bussola/features/auth/domain/auth_controller.dart';
 import 'package:bussola/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:bussola/features/goals/presentation/screens/goals_screen.dart';
-import 'package:bussola/features/performance/presentation/screens/performance_screen.dart';
 import 'package:bussola/features/profile/presentation/profile_screen.dart';
 import 'package:bussola/features/tasks/presentation/screens/tasks_screen.dart';
 
-/// Casca que une as 5 abas do MVP: Hoje, Tarefas, Agenda, Objetivos,
-/// Performance. Perfil/Configurações continuam existindo, só que
-/// acessados por um ícone na tela Hoje, não como aba própria — o
-/// briefing pede exatamente 5 telas na navegação principal.
+/// Casca que une as 4 abas do app: Hoje, Tarefas, Agenda, Objetivos.
+/// Performance não é mais uma aba própria — virou um resumo dentro da
+/// Hoje (card "Seu Desempenho"), reaproveitando o mesmo
+/// `PerformanceCalculator`. Perfil/Configurações continuam existindo, só
+/// que acessados por um ícone na tela Hoje, não como aba própria.
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -35,6 +35,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       DashboardScreen(
         nomeUsuario: nome,
         userId: userId,
+        onNavigateToTab: (i) => setState(() => _index = i),
         onAbrirPerfil: () => Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => ProfileScreen(
@@ -51,7 +52,6 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       const TasksScreen(),
       const CalendarScreen(),
       const GoalsScreen(),
-      const PerformanceScreen(),
     ];
 
     return AppScaffold(
