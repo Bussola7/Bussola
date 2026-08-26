@@ -9,8 +9,11 @@ class AppScaffold extends StatelessWidget {
   final String? title;
   final int? currentNavIndex;
   final ValueChanged<int>? onNavTap;
+  final VoidCallback? onPerfilTap;
   final List<Widget>? actions;
   final bool showBackButton;
+  final Widget? floatingActionButton;
+  final FloatingActionButtonLocation? floatingActionButtonLocation;
 
   const AppScaffold({
     super.key,
@@ -18,8 +21,11 @@ class AppScaffold extends StatelessWidget {
     this.title,
     this.currentNavIndex,
     this.onNavTap,
+    this.onPerfilTap,
     this.actions,
     this.showBackButton = false,
+    this.floatingActionButton,
+    this.floatingActionButtonLocation,
   });
 
   @override
@@ -37,7 +43,13 @@ class AppScaffold extends StatelessWidget {
       body: SafeArea(child: body),
       bottomNavigationBar: currentNavIndex == null
           ? null
-          : AppBottomNavigation(currentIndex: currentNavIndex!, onTap: onNavTap!),
+          : AppBottomNavigation(
+              currentIndex: currentNavIndex!,
+              onTap: onNavTap!,
+              onPerfilTap: onPerfilTap ?? () {},
+            ),
+      floatingActionButton: floatingActionButton,
+      floatingActionButtonLocation: floatingActionButtonLocation,
     );
   }
 }

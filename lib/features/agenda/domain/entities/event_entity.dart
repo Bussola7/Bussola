@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:bussola/features/agenda/data/models/enums.dart';
+import 'package:bussola/shared/models/life_area.dart';
 
 /// Representa um evento do ponto de vista do domínio/UI. Agora inclui
 /// categoria e prioridade (Etapa 2.3) — recorrência, participantes e
@@ -17,6 +18,7 @@ class EventEntity {
   final bool allDay;
   final String? location;
   final String? categoryId;
+  final LifeArea? lifeArea;
   final Priority priority;
 
   const EventEntity({
@@ -28,6 +30,7 @@ class EventEntity {
     required this.allDay,
     this.location,
     this.categoryId,
+    this.lifeArea,
     this.priority = Priority.media,
   });
 
@@ -41,6 +44,7 @@ class EventEntity {
     bool? allDay,
     String? location,
     String? categoryId,
+    LifeArea? lifeArea,
     Priority? priority,
   }) {
     return EventEntity(
@@ -52,6 +56,7 @@ class EventEntity {
       allDay: allDay ?? this.allDay,
       location: location ?? this.location,
       categoryId: categoryId ?? this.categoryId,
+      lifeArea: lifeArea ?? this.lifeArea,
       priority: priority ?? this.priority,
     );
   }
@@ -68,10 +73,21 @@ class EventEntity {
         other.allDay == allDay &&
         other.location == location &&
         other.categoryId == categoryId &&
+        other.lifeArea == lifeArea &&
         other.priority == priority;
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, title, description, startDatetime, endDatetime, allDay, location, categoryId, priority);
+  int get hashCode => Object.hash(
+        id,
+        title,
+        description,
+        startDatetime,
+        endDatetime,
+        allDay,
+        location,
+        categoryId,
+        lifeArea,
+        priority,
+      );
 }

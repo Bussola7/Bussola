@@ -9,7 +9,7 @@ void main() {
       'user_id': 'user-1',
       'title': 'Aprender Flutter',
       'description': 'Terminar o MVP do Bússola',
-      'area': 'profissional',
+      'area': 'trabalho',
       'due_date': '2026-12-31',
       'progress_percent': 40,
       'status': 'em_andamento',
@@ -23,7 +23,7 @@ void main() {
 
       expect(goal.id, 'goal-1');
       expect(goal.title, 'Aprender Flutter');
-      expect(goal.area, LifeArea.profissional);
+      expect(goal.area, LifeArea.trabalho);
       expect(goal.dueDate, DateTime.parse('2026-12-31'));
       expect(goal.progressPercent, 40);
       expect(goal.status, GoalStatus.emAndamento);
@@ -52,7 +52,7 @@ void main() {
       final goal = GoalModel.fromJson(json);
       final insertJson = goal.toInsertJson(userId: 'user-1');
 
-      expect(insertJson['area'], 'profissional');
+      expect(insertJson['area'], 'trabalho');
       expect(insertJson['status'], 'em_andamento');
       expect(insertJson['progress_percent'], 40);
       expect(insertJson['due_date'], '2026-12-31');

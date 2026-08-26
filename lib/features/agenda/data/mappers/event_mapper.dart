@@ -19,6 +19,7 @@ class EventMapper {
       allDay: model.allDay,
       location: model.location,
       categoryId: model.categoryId,
+      lifeArea: model.lifeArea,
       priority: model.priority,
     );
   }
@@ -44,6 +45,7 @@ class EventMapper {
       allDay: entity.allDay,
       location: entity.location,
       categoryId: entity.categoryId,
+      lifeArea: entity.lifeArea,
       priority: entity.priority,
       createdBy: userId,
       updatedBy: userId,
@@ -74,6 +76,7 @@ class EventMapper {
       allDay: entity.allDay,
       location: entity.location,
       categoryId: entity.categoryId,
+      lifeArea: entity.lifeArea,
       color: current.color,
       priority: entity.priority,
       status: current.status,

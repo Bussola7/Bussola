@@ -3,8 +3,9 @@ import 'package:bussola/features/agenda/data/mappers/event_mapper.dart';
 import 'package:bussola/features/agenda/data/models/enums.dart';
 import 'package:bussola/features/agenda/data/models/event_model.dart';
 import 'package:bussola/features/agenda/domain/entities/event_entity.dart';
+import 'package:bussola/shared/models/life_area.dart';
 
-EventModel _buildModel({String? description, String? location, String? categoryId}) {
+EventModel _buildModel({String? description, String? location, String? categoryId, LifeArea? lifeArea}) {
   final now = DateTime.now();
   return EventModel(
     id: 'evt-1',
@@ -18,6 +19,7 @@ EventModel _buildModel({String? description, String? location, String? categoryI
     allDay: false,
     location: location,
     categoryId: categoryId,
+    lifeArea: lifeArea,
     priority: Priority.alta,
     status: EventStatus.confirmado,
     createdAt: now,
@@ -28,7 +30,12 @@ EventModel _buildModel({String? description, String? location, String? categoryI
 void main() {
   group('EventMapper.toEntity', () {
     test('copia só os campos que o editor expõe', () {
-      final model = _buildModel(description: 'Pauta X', location: 'Sala 2', categoryId: 'cat-trabalho');
+      final model = _buildModel(
+        description: 'Pauta X',
+        location: 'Sala 2',
+        categoryId: 'cat-trabalho',
+        lifeArea: LifeArea.trabalho,
+      );
       final entity = EventMapper.toEntity(model);
 
       expect(entity.id, 'evt-1');
@@ -36,6 +43,7 @@ void main() {
       expect(entity.description, 'Pauta X');
       expect(entity.location, 'Sala 2');
       expect(entity.categoryId, 'cat-trabalho');
+      expect(entity.lifeArea, LifeArea.trabalho);
       expect(entity.priority, Priority.alta);
     });
   });
@@ -48,6 +56,7 @@ void main() {
         endDatetime: DateTime(2026, 8, 2, 15, 0),
         allDay: false,
         location: 'Clínica Central',
+        lifeArea: LifeArea.saude,
       );
 
       final model = EventMapper.toNewModel(entity: entity, calendarId: 'cal-1', userId: 'user-1');
@@ -56,6 +65,7 @@ void main() {
       expect(model.title, 'Consulta médica');
       expect(model.priority, Priority.media); // valor padrão do EventModel
       expect(model.createdBy, 'user-1');
+      expect(model.lifeArea, LifeArea.saude);
     });
   });
 
@@ -83,7 +93,7 @@ void main() {
     });
 
     test('categoria e prioridade são editáveis: mudar a entidade muda o evento salvo', () {
-      final original = _buildModel(categoryId: 'cat-antiga');
+      final original = _buildModel(categoryId: 'cat-antiga', lifeArea: LifeArea.pessoal);
       final entity = EventEntity(
         id: original.id,
         title: original.title,
@@ -91,12 +101,14 @@ void main() {
         endDatetime: original.endDatetime,
         allDay: false,
         categoryId: 'cat-nova',
+        lifeArea: LifeArea.estudos,
         priority: Priority.baixa,
       );
 
       final atualizado = EventMapper.applyChanges(current: original, entity: entity);
 
       expect(atualizado.categoryId, 'cat-nova');
+      expect(atualizado.lifeArea, LifeArea.estudos);
       expect(atualizado.priority, Priority.baixa);
     });
 

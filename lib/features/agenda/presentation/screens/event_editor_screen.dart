@@ -15,8 +15,10 @@ import 'package:bussola/features/agenda/presentation/providers/event_provider.da
 import 'package:bussola/features/agenda/presentation/widgets/category_chip.dart';
 import 'package:bussola/features/agenda/presentation/widgets/category_picker_sheet.dart';
 import 'package:bussola/features/agenda/presentation/widgets/collapsible_section.dart';
+import 'package:bussola/features/agenda/presentation/widgets/life_area_selector.dart';
 import 'package:bussola/features/agenda/presentation/widgets/priority_selector.dart';
 import 'package:bussola/features/agenda/presentation/widgets/reminder_selector.dart';
+import 'package:bussola/shared/models/life_area.dart';
 
 /// Tela de criação/edição de evento — reorganizada na Etapa 2.3 para ser
 /// simples por padrão: só Título, Data, Hora e Local aparecem de cara.
@@ -54,6 +56,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   late bool _allDay;
   late Priority _priority;
   String? _categoryId;
+  LifeArea? _lifeArea;
   List<ReminderSelection> _reminders = [];
   bool _isSaving = false;
   bool _carregandoLembretes = false;
@@ -75,6 +78,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     _allDay = existing?.allDay ?? false;
     _priority = existing?.priority ?? Priority.media;
     _categoryId = existing?.categoryId;
+    _lifeArea = existing?.lifeArea;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       ref.read(categoryNotifierProvider.notifier).load(widget.userId);
@@ -173,6 +177,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
       allDay: _allDay,
       location: _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
       categoryId: _categoryId,
+      lifeArea: _lifeArea,
       priority: _priority,
     );
 
@@ -300,6 +305,10 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                         borderRadius: BorderRadius.circular(20),
                         child: CategoryChip(category: categoriaSelecionada),
                       ),
+                      const SizedBox(height: 20),
+                      Text('Área de vida', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 8),
+                      LifeAreaSelector(value: _lifeArea, onChanged: (a) => setState(() => _lifeArea = a)),
                       const SizedBox(height: 20),
                       Text('Prioridade', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
