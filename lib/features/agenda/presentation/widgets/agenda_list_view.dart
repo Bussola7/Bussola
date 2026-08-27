@@ -7,31 +7,35 @@ import 'package:bussola/features/agenda/presentation/providers/event_provider.da
 import 'package:bussola/features/agenda/presentation/widgets/empty_agenda_state.dart';
 import 'package:bussola/features/agenda/presentation/widgets/event_card.dart';
 import 'package:bussola/features/agenda/presentation/widgets/event_detail_sheet.dart';
+import 'package:bussola/shared/models/life_area.dart';
 
 /// Visualização "Lista": os eventos do período em foco, agrupados por dia.
 /// Mostra o [EmptyAgendaState] quando não há nenhum. Quem carrega os
 /// eventos é a `CalendarScreen` (via `EventNotifier.loadPeriod`) — esta
-/// tela só lê o estado já carregado.
+/// tela só lê o estado já carregado. [filtro], se informado, mostra só
+/// os eventos daquela área de vida (`life_area`).
 class AgendaListView extends ConsumerWidget {
   final DateTime focusedDate;
   final String userId;
+  final LifeArea? filtro;
 
-  const AgendaListView({super.key, required this.focusedDate, required this.userId});
+  const AgendaListView({super.key, required this.focusedDate, required this.userId, this.filtro});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(eventNotifierProvider);
+    final eventos = filtro == null ? state.events : state.events.where((e) => e.lifeArea == filtro).toList();
 
-    if (state.isLoading && state.events.isEmpty) {
+    if (state.isLoading && eventos.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (state.events.isEmpty) {
+    if (eventos.isEmpty) {
       return const EmptyAgendaState();
     }
 
     final porDia = <DateTime, List<EventModel>>{};
-    for (final evento in state.events) {
+    for (final evento in eventos) {
       final dia = DateFormatting.apenasData(evento.startDatetime);
       porDia.putIfAbsent(dia, () => []).add(evento);
     }

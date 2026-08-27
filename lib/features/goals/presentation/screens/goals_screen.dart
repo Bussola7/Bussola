@@ -10,18 +10,27 @@ import 'package:bussola/features/goals/data/models/goal_model.dart';
 import 'package:bussola/features/goals/presentation/providers/goal_provider.dart';
 import 'package:bussola/features/goals/presentation/widgets/goal_card.dart';
 import 'package:bussola/features/goals/presentation/widgets/goal_form_sheet.dart';
+import 'package:bussola/shared/models/life_area.dart';
+import 'package:bussola/shared/widgets/area_filter_chip.dart';
 
 class GoalsScreen extends ConsumerStatefulWidget {
-  const GoalsScreen({super.key});
+  /// Filtro de área com que a tela abre — ex: vindo dos ícones de "Áreas
+  /// da vida" na Hoje. O usuário pode limpar depois, dentro da própria tela.
+  final LifeArea? filtroInicial;
+
+  const GoalsScreen({super.key, this.filtroInicial});
 
   @override
   ConsumerState<GoalsScreen> createState() => _GoalsScreenState();
 }
 
 class _GoalsScreenState extends ConsumerState<GoalsScreen> {
+  LifeArea? _filtro;
+
   @override
   void initState() {
     super.initState();
+    _filtro = widget.filtroInicial;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = ref.read(authNotifierProvider).user?.id;
       if (userId != null) ref.read(goalNotifierProvider.notifier).load(userId);
@@ -34,13 +43,17 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => GoalFormSheet(userId: userId, objetivoExistente: objetivoExistente),
+      builder: (_) => GoalFormSheet(userId: userId, objetivoExistente: objetivoExistente, areaInicial: _filtro),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(goalNotifierProvider);
+    final filtro = _filtro;
+    final objetivos = filtro == null ? state.goals : state.goals.where((g) => g.area == filtro).toList();
+    final emAndamento = objetivos.where((g) => !g.isConcluido).toList();
+    final concluidos = objetivos.where((g) => g.isConcluido).toList();
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
@@ -57,28 +70,31 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                 'acompanhando o progresso aos poucos. Diferente de Tarefas (ações pontuais) e Agenda '
                 '(compromissos com horário), os Objetivos representam o que você está construindo.',
           ),
+          if (filtro != null) AreaFilterChip(area: filtro, onLimpar: () => setState(() => _filtro = null)),
           Expanded(
             child: state.isLoading
                 ? const LoadingState()
-                : state.goals.isEmpty
-                    ? const EmptyState(
+                : objetivos.isEmpty
+                    ? EmptyState(
                         icon: Icons.flag_outlined,
-                        title: 'Nenhum objetivo ainda',
-                        message: 'Toque no botão "+" para definir seu primeiro objetivo.',
+                        title: filtro == null ? 'Nenhum objetivo ainda' : 'Nenhum objetivo em ${filtro.label}',
+                        message: filtro == null
+                            ? 'Toque no botão "+" para definir seu primeiro objetivo.'
+                            : 'Toque no botão "+" para definir um objetivo nessa área.',
                       )
                     : ListView(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                         children: [
-                          if (state.emAndamento.isNotEmpty) ...[
-                            Text('Em andamento (${state.emAndamento.length})', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
+                          if (emAndamento.isNotEmpty) ...[
+                            Text('Em andamento (${emAndamento.length})', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
                             const SizedBox(height: 8),
-                            ...state.emAndamento.map((g) => GoalCard(goal: g, onTap: () => _abrirFormulario(objetivoExistente: g))),
+                            ...emAndamento.map((g) => GoalCard(goal: g, onTap: () => _abrirFormulario(objetivoExistente: g))),
                           ],
-                          if (state.concluidos.isNotEmpty) ...[
+                          if (concluidos.isNotEmpty) ...[
                             const SizedBox(height: 20),
-                            Text('Concluídos (${state.concluidos.length})', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
+                            Text('Concluídos (${concluidos.length})', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
                             const SizedBox(height: 8),
-                            ...state.concluidos.map((g) => GoalCard(goal: g, onTap: () => _abrirFormulario(objetivoExistente: g))),
+                            ...concluidos.map((g) => GoalCard(goal: g, onTap: () => _abrirFormulario(objetivoExistente: g))),
                           ],
                         ],
                       ),

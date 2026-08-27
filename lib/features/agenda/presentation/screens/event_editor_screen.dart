@@ -32,12 +32,17 @@ class EventEditorScreen extends ConsumerStatefulWidget {
   final String userId;
   final DateTime? initialDate;
 
+  /// Área pré-selecionada ao criar um evento novo (ex: aberto a partir
+  /// da tela de uma área de vida). Ignorada ao editar.
+  final LifeArea? initialLifeArea;
+
   const EventEditorScreen({
     super.key,
     this.existing,
     required this.calendarId,
     required this.userId,
     this.initialDate,
+    this.initialLifeArea,
   });
 
   @override
@@ -78,7 +83,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     _allDay = existing?.allDay ?? false;
     _priority = existing?.priority ?? Priority.media;
     _categoryId = existing?.categoryId;
-    _lifeArea = existing?.lifeArea;
+    _lifeArea = existing?.lifeArea ?? widget.initialLifeArea;
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       ref.read(categoryNotifierProvider.notifier).load(widget.userId);

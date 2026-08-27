@@ -10,18 +10,27 @@ import 'package:bussola/features/tasks/data/models/task_model.dart';
 import 'package:bussola/features/tasks/presentation/providers/task_provider.dart';
 import 'package:bussola/features/tasks/presentation/widgets/task_form_sheet.dart';
 import 'package:bussola/features/tasks/presentation/widgets/task_tile.dart';
+import 'package:bussola/shared/models/life_area.dart';
+import 'package:bussola/shared/widgets/area_filter_chip.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
-  const TasksScreen({super.key});
+  /// Filtro de área com que a tela abre — ex: vindo dos ícones de "Áreas
+  /// da vida" na Hoje. O usuário pode limpar depois, dentro da própria tela.
+  final LifeArea? filtroInicial;
+
+  const TasksScreen({super.key, this.filtroInicial});
 
   @override
   ConsumerState<TasksScreen> createState() => _TasksScreenState();
 }
 
 class _TasksScreenState extends ConsumerState<TasksScreen> {
+  LifeArea? _filtro;
+
   @override
   void initState() {
     super.initState();
+    _filtro = widget.filtroInicial;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = ref.read(authNotifierProvider).user?.id;
       if (userId != null) ref.read(taskNotifierProvider.notifier).load(userId);
@@ -34,15 +43,17 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => TaskFormSheet(userId: userId, tarefaExistente: tarefaExistente),
+      builder: (_) => TaskFormSheet(userId: userId, tarefaExistente: tarefaExistente, areaInicial: _filtro),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(taskNotifierProvider);
-    final pendentes = state.pendentes;
-    final concluidas = state.concluidas;
+    final filtro = _filtro;
+    final tarefas = filtro == null ? state.tasks : state.tasks.where((t) => t.area == filtro).toList();
+    final pendentes = tarefas.where((t) => !t.isConcluida).toList();
+    final concluidas = tarefas.where((t) => t.isConcluida).toList();
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
@@ -62,14 +73,17 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
             text: 'Aqui você organiza suas tarefas do dia a dia: pendências, afazeres e pequenas ações que '
                 'precisam ser feitas — com prazo, prioridade e status de conclusão.',
           ),
+          if (filtro != null) AreaFilterChip(area: filtro, onLimpar: () => setState(() => _filtro = null)),
           Expanded(
             child: state.isLoading
                 ? const LoadingState()
-                : state.tasks.isEmpty
-                    ? const EmptyState(
+                : tarefas.isEmpty
+                    ? EmptyState(
                         icon: Icons.check_circle_outline,
-                        title: 'Nenhuma tarefa ainda',
-                        message: 'Toque no botão "+" para criar sua primeira tarefa.',
+                        title: filtro == null ? 'Nenhuma tarefa ainda' : 'Nenhuma tarefa em ${filtro.label}',
+                        message: filtro == null
+                            ? 'Toque no botão "+" para criar sua primeira tarefa.'
+                            : 'Toque no botão "+" para criar uma tarefa nessa área.',
                       )
                     : ListView(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),

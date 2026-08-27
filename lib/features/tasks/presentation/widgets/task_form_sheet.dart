@@ -17,7 +17,12 @@ class TaskFormSheet extends ConsumerStatefulWidget {
   final String userId;
   final TaskModel? tarefaExistente;
 
-  const TaskFormSheet({super.key, required this.userId, this.tarefaExistente});
+  /// Área pré-selecionada ao criar uma tarefa nova (ex: aberta a partir
+  /// da tela de uma área de vida). Ignorada ao editar — aí vale a área
+  /// que a tarefa já tinha.
+  final LifeArea? areaInicial;
+
+  const TaskFormSheet({super.key, required this.userId, this.tarefaExistente, this.areaInicial});
 
   @override
   ConsumerState<TaskFormSheet> createState() => _TaskFormSheetState();
@@ -43,7 +48,7 @@ class _TaskFormSheetState extends ConsumerState<TaskFormSheet> {
     final t = widget.tarefaExistente;
     _titleController = TextEditingController(text: t?.title ?? '');
     _descriptionController = TextEditingController(text: t?.description ?? '');
-    _area = t?.area ?? LifeArea.pessoal;
+    _area = t?.area ?? widget.areaInicial ?? LifeArea.pessoal;
     _priority = t?.priority ?? Priority.media;
     _dueDate = t?.dueDate;
 

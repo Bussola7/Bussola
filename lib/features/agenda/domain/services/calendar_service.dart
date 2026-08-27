@@ -17,6 +17,16 @@ class CalendarService {
     return calendars.firstWhere((c) => c.isDefault, orElse: () => calendars.first);
   }
 
+  /// Igual [getDefaultCalendar], mas cria um calendário "Principal" na
+  /// primeira vez em vez de devolver nulo — o app ainda não tem um fluxo
+  /// próprio de criar calendário, então sem isso ninguém criaria o
+  /// primeiro evento (nem pela tela normal, nem por comando de voz).
+  Future<CalendarModel> getOrCreateDefaultCalendar(String userId) async {
+    final existente = await getDefaultCalendar(userId);
+    if (existente != null) return existente;
+    return createCalendar(userId: userId, name: 'Principal', color: '#2563EB');
+  }
+
   Future<CalendarModel> createCalendar({
     required String userId,
     required String name,

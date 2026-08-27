@@ -1,31 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
-import 'package:bussola/features/dashboard/presentation/screens/area_detail_screen.dart';
 import 'package:bussola/shared/models/life_area.dart';
 
-/// As 4 áreas de vida da Hoje — Saúde, Trabalho, Pessoal, Estudos. Ao
-/// tocar, abre a tela dedicada daquela área ([AreaDetailScreen]) com as
-/// tarefas/compromissos/objetivos filtrados. "Financeiro" existe no
-/// enum `LifeArea` mas não tem botão aqui.
+/// As 5 áreas de vida da Hoje. Não navega sozinha pra lugar nenhum —
+/// quem decide o que fazer com o toque é [onTapArea] (a Hoje mostra um
+/// menu escolhendo Tarefas/Agenda/Objetivos daquela área). Rola
+/// horizontalmente — com 5 ícones + label, nem toda tela estreita cabe
+/// tudo sem cortar.
 class LifeAreasRow extends StatelessWidget {
-  final String userId;
+  final ValueChanged<LifeArea> onTapArea;
 
-  const LifeAreasRow({super.key, required this.userId});
+  const LifeAreasRow({super.key, required this.onTapArea});
 
-  static const _areasExibidas = [LifeArea.saude, LifeArea.trabalho, LifeArea.pessoal, LifeArea.estudos];
+  static const _areasExibidas = [
+    LifeArea.saude,
+    LifeArea.trabalho,
+    LifeArea.pessoal,
+    LifeArea.estudos,
+    LifeArea.financeiro,
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: _areasExibidas
-          .map((area) => _AreaIcon(
-                area: area,
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => AreaDetailScreen(area: area, userId: userId)),
-                ),
-              ))
-          .toList(),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final area in _areasExibidas) ...[
+            _AreaIcon(area: area, onTap: () => onTapArea(area)),
+            if (area != _areasExibidas.last) const SizedBox(width: 16),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -41,17 +47,20 @@ class _AreaIcon extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(30),
-      child: Column(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(color: area.backgroundColor, shape: BoxShape.circle),
-            child: Icon(area.icon, color: area.color),
-          ),
-          const SizedBox(height: 6),
-          Text(area.label, style: AppTextStyles.bodyMuted.copyWith(fontSize: 12)),
-        ],
+      child: SizedBox(
+        width: 64,
+        child: Column(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(color: area.backgroundColor, shape: BoxShape.circle),
+              child: Icon(area.icon, color: area.color),
+            ),
+            const SizedBox(height: 6),
+            Text(area.label, style: AppTextStyles.bodyMuted.copyWith(fontSize: 12), textAlign: TextAlign.center),
+          ],
+        ),
       ),
     );
   }

@@ -1,28 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:bussola/core/theme/app_colors.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bussola/features/agenda/presentation/providers/day_intelligence_provider.dart';
+import 'package:bussola/shared/models/life_area.dart';
 
-/// Chip indicando um filtro de foco ativo. Nesta etapa é decorativo — o
-/// app ainda não tem filtro por área de vida na Hoje, então o rótulo é
-/// fixo em vez de refletir um filtro de verdade.
-class FocusChip extends StatelessWidget {
-  final String label;
+/// Chip "Foco: [área]" — reflete a área do próximo compromisso do dia
+/// (o mesmo que o [NextAppointmentCard] mostra), em vez de um rótulo
+/// fixo. Se nenhum compromisso futuro tiver uma área definida, o chip
+/// some — mostrar "Foco" sem nenhum dado real por trás seria decoração
+/// vazia. Quando visível, filtra a seção "Tarefas de hoje" logo abaixo
+/// (mesma área, via [focusAreaProvider]).
+class FocusChip extends ConsumerWidget {
+  final String userId;
 
-  const FocusChip({super.key, this.label = 'Foco: Trabalho'});
+  const FocusChip({super.key, required this.userId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final area = ref.watch(focusAreaProvider(userId));
+    if (area == null) return const SizedBox.shrink();
+    return _Chip(area: area);
+  }
+}
+
+class _Chip extends StatelessWidget {
+  final LifeArea area;
+
+  const _Chip({required this.area});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(color: area.backgroundColor, borderRadius: BorderRadius.circular(20)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.filter_alt_outlined, size: 16, color: AppColors.primary),
+          Icon(area.icon, size: 16, color: area.color),
           const SizedBox(width: 6),
-          Text(label, style: const TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
+          Text(
+            'Foco: ${area.label}',
+            style: TextStyle(color: area.color, fontSize: 13, fontWeight: FontWeight.w600),
+          ),
         ],
       ),
     );

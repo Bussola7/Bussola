@@ -15,13 +15,20 @@ import 'package:bussola/features/agenda/presentation/widgets/day_view.dart';
 import 'package:bussola/features/agenda/presentation/widgets/month_view.dart';
 import 'package:bussola/features/agenda/presentation/widgets/week_view.dart';
 import 'package:bussola/features/auth/domain/auth_controller.dart';
+import 'package:bussola/shared/models/life_area.dart';
+import 'package:bussola/shared/widgets/area_filter_chip.dart';
 
 /// Tela da aba "Agenda": header + a visualização ativa + FAB para criar
 /// um novo compromisso. Também é quem decide QUANDO recarregar os
 /// eventos (a cada troca de período), para nenhuma das 4 visualizações
 /// precisar se preocupar com isso.
 class CalendarScreen extends ConsumerStatefulWidget {
-  const CalendarScreen({super.key});
+  /// Filtro de área com que a tela abre — ex: vindo dos ícones de "Áreas
+  /// da vida" na Hoje. Força a visão "Lista" (a única que mostra título
+  /// dos eventos) e some quando o usuário limpa o filtro.
+  final LifeArea? filtroInicial;
+
+  const CalendarScreen({super.key, this.filtroInicial});
 
   @override
   ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
@@ -30,15 +37,20 @@ class CalendarScreen extends ConsumerStatefulWidget {
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime? _lastRangeStart;
   DateTime? _lastRangeEnd;
+  LifeArea? _filtro;
 
   @override
   void initState() {
     super.initState();
+    _filtro = widget.filtroInicial;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = ref.read(authNotifierProvider).user?.id;
       if (userId == null) return;
       ref.read(calendarNotifierProvider.notifier).load(userId);
       _reloadEventsForCurrentRange(userId);
+      if (widget.filtroInicial != null) {
+        ref.read(calendarUiNotifierProvider.notifier).setViewMode(CalendarViewMode.lista);
+      }
     });
   }
 
@@ -80,7 +92,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       case CalendarViewMode.mes:
         return MonthView(focusedDate: uiState.focusedDate);
       case CalendarViewMode.lista:
-        return AgendaListView(focusedDate: uiState.focusedDate, userId: userId);
+        return AgendaListView(focusedDate: uiState.focusedDate, userId: userId, filtro: _filtro);
     }
   }
 
@@ -106,6 +118,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               text: 'Aqui você organiza seus compromissos com data e horário marcados: reuniões, eventos, '
                   'consultas e qualquer compromisso que tenha um momento específico.',
             ),
+            if (_filtro != null) AreaFilterChip(area: _filtro!, onLimpar: () => setState(() => _filtro = null)),
             CalendarHeader(
               title: _titleFor(uiState),
               viewMode: uiState.viewMode,
@@ -151,6 +164,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     calendarId: _defaultCalendarId(calendars),
                     userId: userId,
                     initialDate: uiState.focusedDate,
+                    initialLifeArea: _filtro,
                   ),
                 ));
               },

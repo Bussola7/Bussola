@@ -34,8 +34,7 @@ class AppColors {
 
   /// Cores das áreas de vida (`LifeArea`) — ícone cheio + fundo claro do
   /// mesmo tom. Usadas na seção "Áreas da vida" da Hoje e no header da
-  /// tela de detalhe de cada área. `financeiro` não tem botão na Hoje,
-  /// mas ganha uma cor aqui mesmo assim (usada em Tarefas/Objetivos).
+  /// tela de detalhe de cada área.
   static const Color lifeAreaSaude = Color(0xFF10B981);
   static const Color lifeAreaSaudeBg = Color(0xFFD1FAE5);
   static const Color lifeAreaTrabalho = Color(0xFF2563EB);
@@ -44,6 +43,9 @@ class AppColors {
   static const Color lifeAreaPessoalBg = Color(0xFFFCE7F3);
   static const Color lifeAreaEstudos = Color(0xFFD97706);
   static const Color lifeAreaEstudosBg = Color(0xFFFEF3C7);
-  static const Color lifeAreaFinanceiro = Color(0xFF0D9488);
-  static const Color lifeAreaFinanceiroBg = Color(0xFFCCFBF1);
+  /// Verde-dinheiro — deliberadamente diferente do verde-esmeralda de
+  /// `lifeAreaSaude` e do dourado de `lifeAreaEstudos`, pra não confundir
+  /// visualmente ao lado das outras 4.
+  static const Color lifeAreaFinanceiro = Color(0xFF16A34A);
+  static const Color lifeAreaFinanceiroBg = Color(0xFFDCFCE7);
 }
