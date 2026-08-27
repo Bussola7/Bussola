@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
 import 'package:bussola/core/utils/date_formatting.dart';
-import 'package:bussola/features/agenda/data/models/event_model.dart';
 import 'package:bussola/features/agenda/domain/agenda_grouping.dart';
 import 'package:bussola/features/agenda/presentation/providers/event_provider.dart';
 import 'package:bussola/features/agenda/presentation/widgets/empty_agenda_state.dart';
