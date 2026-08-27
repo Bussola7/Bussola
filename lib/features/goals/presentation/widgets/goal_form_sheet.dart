@@ -13,7 +13,11 @@ class GoalFormSheet extends ConsumerStatefulWidget {
   final String userId;
   final GoalModel? objetivoExistente;
 
-  const GoalFormSheet({super.key, required this.userId, this.objetivoExistente});
+  /// Área pré-selecionada ao criar um objetivo novo (ex: aberto a partir
+  /// da tela de uma área de vida). Ignorada ao editar.
+  final LifeArea? areaInicial;
+
+  const GoalFormSheet({super.key, required this.userId, this.objetivoExistente, this.areaInicial});
 
   @override
   ConsumerState<GoalFormSheet> createState() => _GoalFormSheetState();
@@ -34,7 +38,7 @@ class _GoalFormSheetState extends ConsumerState<GoalFormSheet> {
     final g = widget.objetivoExistente;
     _titleController = TextEditingController(text: g?.title ?? '');
     _descriptionController = TextEditingController(text: g?.description ?? '');
-    _area = g?.area ?? LifeArea.pessoal;
+    _area = g?.area ?? widget.areaInicial ?? LifeArea.pessoal;
     _dueDate = g?.dueDate;
   }
 

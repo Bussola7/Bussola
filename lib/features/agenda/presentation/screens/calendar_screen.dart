@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bussola/core/components/screen_hint.dart';
 import 'package:bussola/core/utils/date_formatting.dart';
 import 'package:bussola/features/agenda/data/models/calendar_model.dart';
 import 'package:bussola/features/agenda/presentation/providers/calendar_provider.dart';
@@ -14,13 +15,26 @@ import 'package:bussola/features/agenda/presentation/widgets/day_view.dart';
 import 'package:bussola/features/agenda/presentation/widgets/month_view.dart';
 import 'package:bussola/features/agenda/presentation/widgets/week_view.dart';
 import 'package:bussola/features/auth/domain/auth_controller.dart';
+import 'package:bussola/shared/models/life_area.dart';
+import 'package:bussola/shared/widgets/area_filter_chip.dart';
 
 /// Tela da aba "Agenda": header + a visualização ativa + FAB para criar
 /// um novo compromisso. Também é quem decide QUANDO recarregar os
 /// eventos (a cada troca de período), para nenhuma das 4 visualizações
 /// precisar se preocupar com isso.
 class CalendarScreen extends ConsumerStatefulWidget {
-  const CalendarScreen({super.key});
+  /// Filtro de área com que a tela abre — ex: vindo dos ícones de "Áreas
+  /// da vida" na Hoje. Força a visão "Lista" (a única que mostra título
+  /// dos eventos) e some quando o usuário limpa o filtro.
+  final LifeArea? filtroInicial;
+
+  /// Avisa quem abriu a tela (o `HomeShell`) que o filtro foi limpo — sem
+  /// isso, o `HomeShell` continua guardando o filtro antigo e o reaplica
+  /// na próxima vez que essa aba for reconstruída (ex: ao trocar de aba
+  /// e voltar), fazendo o filtro "limpo" reaparecer sozinho.
+  final VoidCallback? onFiltroLimpo;
+
+  const CalendarScreen({super.key, this.filtroInicial, this.onFiltroLimpo});
 
   @override
   ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
@@ -29,15 +43,20 @@ class CalendarScreen extends ConsumerStatefulWidget {
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime? _lastRangeStart;
   DateTime? _lastRangeEnd;
+  LifeArea? _filtro;
 
   @override
   void initState() {
     super.initState();
+    _filtro = widget.filtroInicial;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = ref.read(authNotifierProvider).user?.id;
       if (userId == null) return;
       ref.read(calendarNotifierProvider.notifier).load(userId);
       _reloadEventsForCurrentRange(userId);
+      if (widget.filtroInicial != null) {
+        ref.read(calendarUiNotifierProvider.notifier).setViewMode(CalendarViewMode.lista);
+      }
     });
   }
 
@@ -79,7 +98,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       case CalendarViewMode.mes:
         return MonthView(focusedDate: uiState.focusedDate);
       case CalendarViewMode.lista:
-        return AgendaListView(focusedDate: uiState.focusedDate, userId: userId);
+        return AgendaListView(focusedDate: uiState.focusedDate, userId: userId, filtro: _filtro);
     }
   }
 
@@ -101,6 +120,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       children: [
         Column(
           children: [
+            const ScreenHint(
+              text: 'Aqui você organiza seus compromissos com data e horário marcados: reuniões, eventos, '
+                  'consultas e qualquer compromisso que tenha um momento específico.',
+            ),
+            if (_filtro != null)
+              AreaFilterChip(
+                area: _filtro!,
+                onLimpar: () {
+                  setState(() => _filtro = null);
+                  widget.onFiltroLimpo?.call();
+                },
+              ),
             CalendarHeader(
               title: _titleFor(uiState),
               viewMode: uiState.viewMode,
@@ -146,6 +177,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     calendarId: _defaultCalendarId(calendars),
                     userId: userId,
                     initialDate: uiState.focusedDate,
+                    initialLifeArea: _filtro,
                   ),
                 ));
               },

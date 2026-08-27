@@ -47,7 +47,14 @@ class ScheduleAnalyzerService {
   static const int focoMinimoMinutos = 30;
 
   DayScheduleAnalysis analyze(List<EventModel> eventsOfDay, {DateTime? now}) {
-    final ativos = eventsOfDay.where((e) => !e.isDeleted && !e.allDay).toList()
+    // `endDatetime.isAfter(startDatetime)` descarta eventos de duração
+    // zero/negativa (ex: bug já corrigido no editor, mas que pode deixar
+    // uma linha antiga assim no banco) — sem isso, um evento desses zera
+    // o tempo ocupado inteiro e ainda fatia o maior intervalo livre em
+    // pedaços menores do que o real, sem nenhum motivo.
+    final ativos = eventsOfDay
+        .where((e) => !e.isDeleted && !e.allDay && e.endDatetime.isAfter(e.startDatetime))
+        .toList()
       ..sort((a, b) => a.startDatetime.compareTo(b.startDatetime));
 
     final referencia = now ?? DateTime.now();
@@ -68,7 +75,11 @@ class ScheduleAnalyzerService {
       );
     }
 
-    final diaBase = ativos.first.startDatetime;
+    // .toLocal() é essencial aqui: startDatetime vem do banco em UTC, e
+    // sem converter, a "janela do dia" acabava sendo calculada a partir do
+    // dia/mês/ano em UTC — quase sempre coincide com o dia local, mas erra
+    // perto da virada da meia-noite.
+    final diaBase = ativos.first.startDatetime.toLocal();
     final inicioJanela = DateTime(diaBase.year, diaBase.month, diaBase.day, horaInicioDaJanela);
     final fimJanela = DateTime(diaBase.year, diaBase.month, diaBase.day, horaFimDaJanela);
 
@@ -84,8 +95,8 @@ class ScheduleAnalyzerService {
     }
 
     for (final evento in ativos) {
-      final inicioEvento = clampToWindow(evento.startDatetime);
-      final fimEvento = clampToWindow(evento.endDatetime);
+      final inicioEvento = clampToWindow(evento.startDatetime.toLocal());
+      final fimEvento = clampToWindow(evento.endDatetime.toLocal());
       if (!fimEvento.isAfter(cursor)) continue; // evento todo antes da janela/cursor
 
       if (inicioEvento.isAfter(cursor)) {

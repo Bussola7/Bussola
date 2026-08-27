@@ -132,6 +132,30 @@ void main() {
     });
   });
 
+  group('Evento com duração zero (bug de criação já corrigido, mas pode existir no banco)', () {
+    test('REGRESSÃO: é ignorado — não zera o tempo ocupado nem fragmenta o intervalo livre', () {
+      final eventos = [
+        _buildEvent(id: 'zero', start: DateTime(2026, 1, 1, 12, 10), end: DateTime(2026, 1, 1, 12, 10)),
+        _buildEvent(id: 'normal', start: DateTime(2026, 1, 1, 9), end: DateTime(2026, 1, 1, 10)),
+      ];
+
+      final analise = service.analyze(eventos, now: referencia);
+
+      expect(analise.busyDuration, const Duration(hours: 1)); // só o evento normal
+      expect(analise.largestFreeInterval, const Duration(hours: 12)); // 10h–22h, sem fatiar em 12h10
+    });
+
+    test('REGRESSÃO: sozinho, se comporta como se não houvesse nenhum evento', () {
+      final eventos = [_buildEvent(id: 'zero', start: DateTime(2026, 1, 1, 12), end: DateTime(2026, 1, 1, 12))];
+
+      final analise = service.analyze(eventos, now: referencia);
+
+      expect(analise.busyDuration, Duration.zero);
+      expect(analise.freeDuration, const Duration(hours: 15));
+      expect(analise.largestFreeInterval, const Duration(hours: 15));
+    });
+  });
+
   group('Eventos de dia inteiro e excluídos', () {
     test('não entram no cálculo de tempo ocupado/livre, mas contam em eventCount', () {
       final eventos = [

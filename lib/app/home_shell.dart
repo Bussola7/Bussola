@@ -6,14 +6,14 @@ import 'package:bussola/features/agenda/presentation/screens/calendar_screen.dar
 import 'package:bussola/features/auth/domain/auth_controller.dart';
 import 'package:bussola/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:bussola/features/goals/presentation/screens/goals_screen.dart';
-import 'package:bussola/features/performance/presentation/screens/performance_screen.dart';
 import 'package:bussola/features/profile/presentation/profile_screen.dart';
 import 'package:bussola/features/tasks/presentation/screens/tasks_screen.dart';
+import 'package:bussola/shared/models/life_area.dart';
 
-/// Casca que une as 5 abas do MVP: Hoje, Tarefas, Agenda, Objetivos,
-/// Performance. Perfil/Configurações continuam existindo, só que
-/// acessados por um ícone na tela Hoje, não como aba própria — o
-/// briefing pede exatamente 5 telas na navegação principal.
+/// Casca que une as 5 abas fixas do app: Início, Agenda, Tarefas, Metas
+/// e Perfil. Sem botão central de criação — cada tela tem seu próprio
+/// jeito de criar (a Hoje tem o bloco "Criar", Agenda/Tarefas/Metas têm
+/// FAB ou botão próprio).
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -24,6 +24,31 @@ class HomeShell extends ConsumerStatefulWidget {
 class _HomeShellState extends ConsumerState<HomeShell> {
   int _index = 0;
 
+  // Filtro de área aplicado à próxima vez que a aba correspondente for
+  // aberta (vindo do menu "Áreas da vida" da Hoje). Como `screens[_index]`
+  // reconstrói a tela do zero a cada troca (não é IndexedStack), passar um
+  // valor novo no construtor já basta para reaplicar o filtro.
+  LifeArea? _filtroAgenda;
+  LifeArea? _filtroTarefas;
+  LifeArea? _filtroMetas;
+
+  void _navigateToTab(int index, {LifeArea? filtro}) {
+    setState(() {
+      _index = index;
+      switch (index) {
+        case 1:
+          _filtroAgenda = filtro;
+          break;
+        case 2:
+          _filtroTarefas = filtro;
+          break;
+        case 3:
+          _filtroMetas = filtro;
+          break;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
@@ -32,26 +57,30 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final userId = authState.user?.id ?? '';
 
     final screens = [
-      DashboardScreen(
-        nomeUsuario: nome,
-        userId: userId,
-        onAbrirPerfil: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ProfileScreen(
-              nome: nome,
-              email: email,
-              onLogout: () async {
-                await ref.read(authNotifierProvider.notifier).logout();
-                if (context.mounted) context.go('/login');
-              },
-            ),
-          ),
-        ),
+      DashboardScreen(nomeUsuario: nome, userId: userId, onNavigateToTab: _navigateToTab),
+      CalendarScreen(
+        key: ValueKey('agenda-$_filtroAgenda'),
+        filtroInicial: _filtroAgenda,
+        onFiltroLimpo: () => setState(() => _filtroAgenda = null),
       ),
-      const TasksScreen(),
-      const CalendarScreen(),
-      const GoalsScreen(),
-      const PerformanceScreen(),
+      TasksScreen(
+        key: ValueKey('tarefas-$_filtroTarefas'),
+        filtroInicial: _filtroTarefas,
+        onFiltroLimpo: () => setState(() => _filtroTarefas = null),
+      ),
+      GoalsScreen(
+        key: ValueKey('metas-$_filtroMetas'),
+        filtroInicial: _filtroMetas,
+        onFiltroLimpo: () => setState(() => _filtroMetas = null),
+      ),
+      ProfileScreen(
+        nome: nome,
+        email: email,
+        onLogout: () async {
+          await ref.read(authNotifierProvider.notifier).logout();
+          if (context.mounted) context.go('/login');
+        },
+      ),
     ];
 
     return AppScaffold(

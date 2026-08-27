@@ -10,7 +10,7 @@ void main() {
       'user_id': 'user-1',
       'title': 'Enviar proposta',
       'description': 'Revisar valores antes de enviar',
-      'area': 'profissional',
+      'area': 'trabalho',
       'priority': 'alta',
       'status': 'pendente',
       'due_date': '2026-08-10',
@@ -24,7 +24,7 @@ void main() {
 
       expect(task.id, 'task-1');
       expect(task.title, 'Enviar proposta');
-      expect(task.area, LifeArea.profissional);
+      expect(task.area, LifeArea.trabalho);
       expect(task.priority, Priority.alta);
       expect(task.status, TaskStatus.pendente);
       expect(task.dueDate, DateTime.parse('2026-08-10'));
@@ -53,7 +53,7 @@ void main() {
       final task = TaskModel.fromJson(json);
       final insertJson = task.toInsertJson(userId: 'user-1');
 
-      expect(insertJson['area'], 'profissional');
+      expect(insertJson['area'], 'trabalho');
       expect(insertJson['priority'], 'alta');
       expect(insertJson['status'], 'pendente');
       expect(insertJson['due_date'], '2026-08-10');

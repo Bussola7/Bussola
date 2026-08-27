@@ -1,156 +1,208 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bussola/core/components/app_card.dart';
-import 'package:bussola/core/theme/app_colors.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
-import 'package:bussola/features/dashboard/domain/dashboard_calculator.dart';
-import 'package:bussola/features/dashboard/presentation/widgets/day_statistics_card.dart';
-import 'package:bussola/features/dashboard/presentation/widgets/north_of_day_card.dart';
+import 'package:bussola/features/agenda/domain/services/calendar_service.dart';
+import 'package:bussola/features/agenda/presentation/providers/category_provider.dart';
+import 'package:bussola/features/agenda/presentation/screens/event_editor_screen.dart';
+import 'package:bussola/features/dashboard/presentation/widgets/dashboard_header.dart';
+import 'package:bussola/features/dashboard/presentation/widgets/dashboard_search_field.dart';
+import 'package:bussola/features/dashboard/presentation/widgets/focus_chip.dart';
+import 'package:bussola/features/dashboard/presentation/widgets/insight_banner.dart';
+import 'package:bussola/features/dashboard/presentation/widgets/life_areas_row.dart';
+import 'package:bussola/features/dashboard/presentation/widgets/next_appointment_card.dart';
+import 'package:bussola/features/dashboard/presentation/widgets/performance_summary_card.dart';
+import 'package:bussola/features/dashboard/presentation/widgets/quick_actions_row.dart';
+import 'package:bussola/features/dashboard/presentation/widgets/today_tasks_section.dart';
+import 'package:bussola/features/goals/presentation/providers/goal_provider.dart';
+import 'package:bussola/features/goals/presentation/widgets/goal_form_sheet.dart';
 import 'package:bussola/features/tasks/presentation/providers/task_provider.dart';
+import 'package:bussola/features/tasks/presentation/widgets/task_form_sheet.dart';
 import 'package:bussola/shared/models/life_area.dart';
 
-/// Tela "Hoje": primeira tela que a pessoa vê depois de logada.
-///
-/// Mostra, com dados reais (nada simulado): até 3 prioridades do dia,
-/// tarefas do dia, compromissos do dia (via "Norte do Dia"/"Estatísticas",
-/// que já usam a Agenda de verdade), tarefas atrasadas, e um resumo
-/// simples da execução do dia.
+/// Tela "Hoje": primeira tela que a pessoa vê depois de logada. Funciona
+/// como um hub — header, próximo compromisso, busca, o bloco "Criar" e
+/// as áreas da vida — em vez de listar tarefas/prioridades (isso mora
+/// nas abas de sempre, todas fixas na navegação inferior).
 class DashboardScreen extends ConsumerStatefulWidget {
   final String nomeUsuario;
   final String userId;
-  final VoidCallback? onAbrirPerfil;
 
-  const DashboardScreen({super.key, required this.nomeUsuario, required this.userId, this.onAbrirPerfil});
+  /// Troca de aba a partir da Hoje (usado pelo menu de "Áreas da vida",
+  /// que precisa abrir Agenda/Tarefas/Objetivos já com um filtro).
+  final void Function(int index, {LifeArea? filtro})? onNavigateToTab;
+
+  const DashboardScreen({
+    super.key,
+    required this.nomeUsuario,
+    required this.userId,
+    this.onNavigateToTab,
+  });
 
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  final _calculator = DashboardCalculator();
+  final _calendarService = CalendarService();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Tarefas/objetivos alimentam o resumo de "Relatórios"; categorias
+      // são usadas pelo card de próximo compromisso.
       ref.read(taskNotifierProvider.notifier).load(widget.userId);
+      ref.read(goalNotifierProvider.notifier).load(widget.userId);
+      ref.read(categoryNotifierProvider.notifier).load(widget.userId);
     });
+  }
+
+  Future<void> _abrirCriar() async {
+    final escolha = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.check_circle_outline),
+              title: const Text('Nova tarefa'),
+              onTap: () => Navigator.of(context).pop('tarefa'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: const Text('Novo compromisso'),
+              onTap: () => Navigator.of(context).pop('compromisso'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.flag_outlined),
+              title: const Text('Nova meta'),
+              onTap: () => Navigator.of(context).pop('meta'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (escolha == null || !mounted) return;
+
+    switch (escolha) {
+      case 'tarefa':
+        await showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          builder: (_) => TaskFormSheet(userId: widget.userId),
+        );
+        break;
+      case 'meta':
+        await showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          builder: (_) => GoalFormSheet(userId: widget.userId),
+        );
+        break;
+      case 'compromisso':
+        final calendar = await _calendarService.getOrCreateDefaultCalendar(widget.userId);
+        if (!mounted) return;
+        await Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => EventEditorScreen(calendarId: calendar.id, userId: widget.userId, initialDate: DateTime.now()),
+        ));
+        break;
+    }
+  }
+
+  void _verRelatorios() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Relatórios', style: AppTextStyles.heading2),
+            const SizedBox(height: 16),
+            PerformanceSummaryCard(userId: widget.userId),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _escolherAreaDestino(LifeArea area) async {
+    final escolha = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Wrap(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Text('Ver ${area.label} em', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.check_circle_outline),
+              title: const Text('Tarefas'),
+              onTap: () => Navigator.of(context).pop('tarefas'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_today_outlined),
+              title: const Text('Agenda'),
+              onTap: () => Navigator.of(context).pop('agenda'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.flag_outlined),
+              title: const Text('Objetivos'),
+              onTap: () => Navigator.of(context).pop('objetivos'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (escolha == null) return;
+
+    switch (escolha) {
+      case 'tarefas':
+        widget.onNavigateToTab?.call(2, filtro: area);
+        break;
+      case 'agenda':
+        widget.onNavigateToTab?.call(1, filtro: area);
+        break;
+      case 'objetivos':
+        widget.onNavigateToTab?.call(3, filtro: area);
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final taskState = ref.watch(taskNotifierProvider);
-    final prioridades = _calculator.prioridades(taskState.tasks);
-    final tarefasHoje = taskState.hoje;
-    final atrasadas = taskState.atrasadas;
-    final concluidasHoje = _calculator.concluidasHoje(taskState.tasks);
-
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const CircleAvatar(radius: 24, backgroundColor: AppColors.primary, child: Icon(Icons.person, color: Colors.white)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Bom dia, ${widget.nomeUsuario} \u{1F44B}', style: AppTextStyles.heading2),
-                    Text(_calculator.formatarData(DateTime.now()), style: AppTextStyles.bodyMuted),
-                  ],
-                ),
-              ),
-              if (widget.onAbrirPerfil != null)
-                IconButton(onPressed: widget.onAbrirPerfil, icon: const Icon(Icons.person_outline)),
-            ],
-          ),
-          const SizedBox(height: 24),
-          NorthOfDayCard(userId: widget.userId),
-          const SizedBox(height: 16),
-          DayStatisticsCard(userId: widget.userId),
-          const SizedBox(height: 24),
-
-          if (atrasadas.isNotEmpty) ...[
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 18),
-                      const SizedBox(width: 6),
-                      Text('${atrasadas.length} tarefa${atrasadas.length == 1 ? '' : 's'} atrasada${atrasadas.length == 1 ? '' : 's'}',
-                          style: AppTextStyles.body.copyWith(color: AppColors.error, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ...atrasadas.take(3).map((t) => Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text('• ${t.title}', style: AppTextStyles.bodyMuted),
-                      )),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          Text('Prioridades', style: AppTextStyles.heading2),
-          const SizedBox(height: 8),
-          if (prioridades.isEmpty)
-            Text('Nenhuma tarefa pendente — bom trabalho! \u{1F389}', style: AppTextStyles.bodyMuted)
-          else
-            ...prioridades.map((t) => _ResumoTile(titulo: t.title, subtitulo: t.area.label)),
-
-          const SizedBox(height: 20),
-          Text('Tarefas de hoje', style: AppTextStyles.heading2),
-          const SizedBox(height: 8),
-          if (tarefasHoje.isEmpty)
-            Text('Nenhuma tarefa com prazo para hoje.', style: AppTextStyles.bodyMuted)
-          else
-            ...tarefasHoje.map((t) => _ResumoTile(titulo: t.title, subtitulo: t.area.label)),
-
-          const SizedBox(height: 20),
-          AppCard(
-            child: Row(
+          DashboardHeader(nomeUsuario: widget.nomeUsuario),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.emoji_events_outlined, color: AppColors.primary),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '$concluidasHoje tarefa${concluidasHoje == 1 ? '' : 's'} concluída${concluidasHoje == 1 ? '' : 's'} hoje',
-                    style: AppTextStyles.body,
-                  ),
-                ),
+                InsightBanner(userId: widget.userId),
+                const SizedBox(height: 12),
+                NextAppointmentCard(userId: widget.userId),
+                const SizedBox(height: 16),
+                const DashboardSearchField(),
+                const SizedBox(height: 12),
+                FocusChip(userId: widget.userId),
+                const SizedBox(height: 16),
+                TodayTasksSection(userId: widget.userId),
+                const SizedBox(height: 24),
+                QuickActionsRow(onCriar: _abrirCriar, onRelatorios: _verRelatorios),
+                const SizedBox(height: 24),
+                Text('Áreas da vida', style: AppTextStyles.heading2),
+                const SizedBox(height: 16),
+                LifeAreasRow(onTapArea: _escolherAreaDestino),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ResumoTile extends StatelessWidget {
-  final String titulo;
-  final String subtitulo;
-
-  const _ResumoTile({required this.titulo, required this.subtitulo});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: AppCard(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          children: [
-            Expanded(child: Text(titulo, style: AppTextStyles.body)),
-            Text(subtitulo, style: AppTextStyles.bodyMuted.copyWith(fontSize: 12)),
-          ],
-        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bussola/features/agenda/data/models/enums.dart';
 import 'package:bussola/features/agenda/data/models/event_model.dart';
+import 'package:bussola/shared/models/life_area.dart';
 
 void main() {
   group('EventModel', () {
@@ -76,6 +77,20 @@ void main() {
       final excluidoJson = {...json, 'deleted_at': '2026-08-02T10:00:00.000Z'};
       final excluido = EventModel.fromJson(excluidoJson);
       expect(excluido.isDeleted, true);
+    });
+
+    test('life_area é opcional: ausente no JSON vira nulo, sem quebrar nada', () {
+      final event = EventModel.fromJson(json);
+      expect(event.lifeArea, isNull);
+    });
+
+    test('life_area lido do JSON e enviado de volta no formato do banco', () {
+      final comArea = {...json, 'life_area': 'trabalho'};
+      final event = EventModel.fromJson(comArea);
+
+      expect(event.lifeArea, LifeArea.trabalho);
+      expect(event.toInsertJson(userId: 'user-1')['life_area'], 'trabalho');
+      expect(event.toJson()['life_area'], 'trabalho');
     });
   });
 }

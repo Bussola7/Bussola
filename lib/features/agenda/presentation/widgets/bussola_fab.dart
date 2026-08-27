@@ -8,8 +8,15 @@ class BussolaFab extends StatefulWidget {
   final VoidCallback onPressed;
   final IconData icon;
   final String tooltip;
+  final Color color;
 
-  const BussolaFab({super.key, required this.onPressed, this.icon = Icons.add, this.tooltip = 'Criar compromisso'});
+  const BussolaFab({
+    super.key,
+    required this.onPressed,
+    this.icon = Icons.add,
+    this.tooltip = 'Criar compromisso',
+    this.color = AppColors.primary,
+  });
 
   @override
   State<BussolaFab> createState() => _BussolaFabState();
@@ -37,7 +44,7 @@ class _BussolaFabState extends State<BussolaFab> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: widget.color,
               shape: BoxShape.circle,
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 10, offset: const Offset(0, 4))],
             ),

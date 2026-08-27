@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:bussola/features/agenda/data/models/enums.dart';
+import 'package:bussola/shared/models/life_area.dart';
 
 /// Representa uma linha da tabela `events`.
 ///
@@ -24,6 +25,7 @@ class EventModel {
   final bool allDay;
   final String? location;
   final String? categoryId;
+  final LifeArea? lifeArea;
   final String? color;
   final Priority priority;
   final EventStatus status;
@@ -49,6 +51,7 @@ class EventModel {
     required this.allDay,
     this.location,
     this.categoryId,
+    this.lifeArea,
     this.color,
     this.priority = Priority.media,
     this.status = EventStatus.confirmado,
@@ -98,6 +101,7 @@ class EventModel {
       allDay: json['all_day'] as bool? ?? false,
       location: json['location'] as String?,
       categoryId: json['category_id'] as String?,
+      lifeArea: json['life_area'] == null ? null : LifeAreaX.fromDb(json['life_area'] as String),
       color: json['color'] as String?,
       priority: PriorityX.fromDb(json['priority'] as String? ?? 'media'),
       status: EventStatusX.fromDb(json['status'] as String? ?? 'confirmado'),
@@ -126,6 +130,7 @@ class EventModel {
         'all_day': allDay,
         'location': location,
         'category_id': categoryId,
+        'life_area': lifeArea?.toDb(),
         'color': color,
         'priority': priority.toDb(),
         'status': status.toDb(),
@@ -152,6 +157,7 @@ class EventModel {
         'all_day': allDay,
         'location': location,
         'category_id': categoryId,
+        'life_area': lifeArea?.toDb(),
         'color': color,
         'priority': priority.toDb(),
         'status': status.toDb(),
@@ -171,6 +177,7 @@ class EventModel {
         'all_day': allDay,
         'location': location,
         'category_id': categoryId,
+        'life_area': lifeArea?.toDb(),
         'color': color,
         'priority': priority.toDb(),
         'status': status.toDb(),
@@ -188,6 +195,7 @@ class EventModel {
     bool? allDay,
     String? location,
     String? categoryId,
+    LifeArea? lifeArea,
     String? color,
     Priority? priority,
     EventStatus? status,
@@ -210,6 +218,7 @@ class EventModel {
       allDay: allDay ?? this.allDay,
       location: location ?? this.location,
       categoryId: categoryId ?? this.categoryId,
+      lifeArea: lifeArea ?? this.lifeArea,
       color: color ?? this.color,
       priority: priority ?? this.priority,
       status: status ?? this.status,
@@ -240,6 +249,7 @@ class EventModel {
         other.allDay == allDay &&
         other.location == location &&
         other.categoryId == categoryId &&
+        other.lifeArea == lifeArea &&
         other.color == color &&
         other.priority == priority &&
         other.status == status &&
@@ -265,6 +275,7 @@ class EventModel {
         allDay,
         location,
         categoryId,
+        lifeArea,
         color,
         priority,
         status,

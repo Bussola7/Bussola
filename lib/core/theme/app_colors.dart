@@ -20,4 +20,33 @@ class AppColors {
 
   static const Color surfaceLight = Colors.white;
   static const Color surfaceDark = Color(0xFF1E293B);
+
+  /// Fundo de cartões escuros sobre superfície clara (ex: botão de
+  /// "Relatórios" na Hoje) — mesmo tom do [surfaceDark], nomeado à parte
+  /// porque aqui o uso é decorativo, não de tema escuro.
+  static const Color cardDark = Color(0xFF1E293B);
+
+  /// Gradiente do header da tela Hoje.
+  static const LinearGradient headerGradient = LinearGradient(
+    colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  /// Cores das áreas de vida (`LifeArea`) — ícone cheio + fundo claro do
+  /// mesmo tom. Usadas na seção "Áreas da vida" da Hoje e no header da
+  /// tela de detalhe de cada área.
+  static const Color lifeAreaSaude = Color(0xFF10B981);
+  static const Color lifeAreaSaudeBg = Color(0xFFD1FAE5);
+  static const Color lifeAreaTrabalho = Color(0xFF2563EB);
+  static const Color lifeAreaTrabalhoBg = Color(0xFFDBEAFE);
+  static const Color lifeAreaPessoal = Color(0xFF9D174D);
+  static const Color lifeAreaPessoalBg = Color(0xFFFCE7F3);
+  static const Color lifeAreaEstudos = Color(0xFFD97706);
+  static const Color lifeAreaEstudosBg = Color(0xFFFEF3C7);
+  /// Verde-dinheiro — deliberadamente diferente do verde-esmeralda de
+  /// `lifeAreaSaude` e do dourado de `lifeAreaEstudos`, pra não confundir
+  /// visualmente ao lado das outras 4.
+  static const Color lifeAreaFinanceiro = Color(0xFF16A34A);
+  static const Color lifeAreaFinanceiroBg = Color(0xFFDCFCE7);
 }

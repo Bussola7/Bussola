@@ -2,26 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bussola/core/components/empty_state.dart';
 import 'package:bussola/core/components/loading_state.dart';
+import 'package:bussola/core/components/screen_hint.dart';
 import 'package:bussola/core/theme/app_colors.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
-import 'package:bussola/features/agenda/data/models/enums.dart';
 import 'package:bussola/features/auth/domain/auth_controller.dart';
 import 'package:bussola/features/tasks/data/models/task_model.dart';
 import 'package:bussola/features/tasks/presentation/providers/task_provider.dart';
 import 'package:bussola/features/tasks/presentation/widgets/task_form_sheet.dart';
+import 'package:bussola/features/tasks/presentation/widgets/task_tile.dart';
 import 'package:bussola/shared/models/life_area.dart';
+import 'package:bussola/shared/widgets/area_filter_chip.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
-  const TasksScreen({super.key});
+  /// Filtro de área com que a tela abre — ex: vindo dos ícones de "Áreas
+  /// da vida" na Hoje. O usuário pode limpar depois, dentro da própria tela.
+  final LifeArea? filtroInicial;
+
+  /// Avisa quem abriu a tela (o `HomeShell`) que o filtro foi limpo — sem
+  /// isso, o `HomeShell` continua guardando o filtro antigo e o reaplica
+  /// na próxima vez que essa aba for reconstruída (ex: ao trocar de aba
+  /// e voltar), fazendo o filtro "limpo" reaparecer sozinho.
+  final VoidCallback? onFiltroLimpo;
+
+  const TasksScreen({super.key, this.filtroInicial, this.onFiltroLimpo});
 
   @override
   ConsumerState<TasksScreen> createState() => _TasksScreenState();
 }
 
 class _TasksScreenState extends ConsumerState<TasksScreen> {
+  LifeArea? _filtro;
+
   @override
   void initState() {
     super.initState();
+    _filtro = widget.filtroInicial;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = ref.read(authNotifierProvider).user?.id;
       if (userId != null) ref.read(taskNotifierProvider.notifier).load(userId);
@@ -34,15 +49,17 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => TaskFormSheet(userId: userId, tarefaExistente: tarefaExistente),
+      builder: (_) => TaskFormSheet(userId: userId, tarefaExistente: tarefaExistente, areaInicial: _filtro),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(taskNotifierProvider);
-    final pendentes = state.pendentes;
-    final concluidas = state.concluidas;
+    final filtro = _filtro;
+    final tarefas = filtro == null ? state.tasks : state.tasks.where((t) => t.area == filtro).toList();
+    final pendentes = tarefas.where((t) => !t.isConcluida).toList();
+    final concluidas = tarefas.where((t) => t.isConcluida).toList();
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
@@ -56,107 +73,49 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body: state.isLoading
-          ? const LoadingState()
-          : state.tasks.isEmpty
-              ? const EmptyState(
-                  icon: Icons.check_circle_outline,
-                  title: 'Nenhuma tarefa ainda',
-                  message: 'Toque no botão "+" para criar sua primeira tarefa.',
-                )
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-                  children: [
-                    if (pendentes.isNotEmpty) ...[
-                      Text('Pendentes (${pendentes.length})', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      ...pendentes.map((t) => _TaskTile(task: t, onTap: () => _abrirFormulario(tarefaExistente: t))),
-                    ],
-                    if (concluidas.isNotEmpty) ...[
-                      const SizedBox(height: 20),
-                      Text('Concluídas (${concluidas.length})', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      ...concluidas.map((t) => _TaskTile(task: t, onTap: () => _abrirFormulario(tarefaExistente: t))),
-                    ],
-                  ],
-                ),
-    );
-  }
-}
-
-class _TaskTile extends ConsumerWidget {
-  final TaskModel task;
-  final VoidCallback onTap;
-
-  const _TaskTile({required this.task, required this.onTap});
-
-  Color _corPrioridade(Priority p) {
-    switch (p) {
-      case Priority.muitoAlta:
-        return AppColors.error;
-      case Priority.alta:
-        return Colors.orange;
-      case Priority.media:
-        return AppColors.primary;
-      case Priority.baixa:
-        return AppColors.textMuted;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Dismissible(
-      key: ValueKey(task.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        decoration: BoxDecoration(color: AppColors.error, borderRadius: BorderRadius.circular(14)),
-        child: const Icon(Icons.delete_outline, color: Colors.white),
-      ),
-      onDismissed: (_) => ref.read(taskNotifierProvider.notifier).delete(task.id),
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 8),
-        elevation: 0,
-        color: AppColors.surfaceLight,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        child: ListTile(
-          onTap: onTap,
-          leading: GestureDetector(
-            onTap: () => ref.read(taskNotifierProvider.notifier).toggleConcluida(task),
-            child: Icon(
-              task.isConcluida ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: task.isConcluida ? AppColors.secondary : _corPrioridade(task.priority),
+      body: Column(
+        children: [
+          const ScreenHint(
+            text: 'Aqui você organiza suas tarefas do dia a dia: pendências, afazeres e pequenas ações que '
+                'precisam ser feitas — com prazo, prioridade e status de conclusão.',
+          ),
+          if (filtro != null)
+            AreaFilterChip(
+              area: filtro,
+              onLimpar: () {
+                setState(() => _filtro = null);
+                widget.onFiltroLimpo?.call();
+              },
             ),
+          Expanded(
+            child: state.isLoading
+                ? const LoadingState()
+                : tarefas.isEmpty
+                    ? EmptyState(
+                        icon: Icons.check_circle_outline,
+                        title: filtro == null ? 'Nenhuma tarefa ainda' : 'Nenhuma tarefa em ${filtro.label}',
+                        message: filtro == null
+                            ? 'Toque no botão "+" para criar sua primeira tarefa.'
+                            : 'Toque no botão "+" para criar uma tarefa nessa área.',
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                        children: [
+                          if (pendentes.isNotEmpty) ...[
+                            Text('Pendentes (${pendentes.length})', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            ...pendentes.map((t) => TaskTile(task: t, onTap: () => _abrirFormulario(tarefaExistente: t))),
+                          ],
+                          if (concluidas.isNotEmpty) ...[
+                            const SizedBox(height: 20),
+                            Text('Concluídas (${concluidas.length})', style: AppTextStyles.bodyMuted.copyWith(fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            ...concluidas.map((t) => TaskTile(task: t, onTap: () => _abrirFormulario(tarefaExistente: t))),
+                          ],
+                        ],
+                      ),
           ),
-          title: Text(
-            task.title,
-            style: AppTextStyles.body.copyWith(
-              decoration: task.isConcluida ? TextDecoration.lineThrough : null,
-              color: task.isConcluida ? AppColors.textMuted : null,
-            ),
-          ),
-          subtitle: Row(
-            children: [
-              Text(task.area.emoji, style: const TextStyle(fontSize: 12)),
-              const SizedBox(width: 4),
-              Text(task.area.label, style: AppTextStyles.bodyMuted.copyWith(fontSize: 12)),
-              if (task.dueDate != null) ...[
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.event_outlined,
-                  size: 12,
-                  color: task.isAtrasada ? AppColors.error : AppColors.textMuted,
-                ),
-                const SizedBox(width: 2),
-                Text(
-                  '${task.dueDate!.day.toString().padLeft(2, '0')}/${task.dueDate!.month.toString().padLeft(2, '0')}',
-                  style: AppTextStyles.bodyMuted.copyWith(fontSize: 12, color: task.isAtrasada ? AppColors.error : null),
-                ),
-              ],
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
