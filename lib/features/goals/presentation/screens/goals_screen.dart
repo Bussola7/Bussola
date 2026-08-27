@@ -18,7 +18,13 @@ class GoalsScreen extends ConsumerStatefulWidget {
   /// da vida" na Hoje. O usuário pode limpar depois, dentro da própria tela.
   final LifeArea? filtroInicial;
 
-  const GoalsScreen({super.key, this.filtroInicial});
+  /// Avisa quem abriu a tela (o `HomeShell`) que o filtro foi limpo — sem
+  /// isso, o `HomeShell` continua guardando o filtro antigo e o reaplica
+  /// na próxima vez que essa aba for reconstruída (ex: ao trocar de aba
+  /// e voltar), fazendo o filtro "limpo" reaparecer sozinho.
+  final VoidCallback? onFiltroLimpo;
+
+  const GoalsScreen({super.key, this.filtroInicial, this.onFiltroLimpo});
 
   @override
   ConsumerState<GoalsScreen> createState() => _GoalsScreenState();
@@ -70,7 +76,14 @@ class _GoalsScreenState extends ConsumerState<GoalsScreen> {
                 'acompanhando o progresso aos poucos. Diferente de Tarefas (ações pontuais) e Agenda '
                 '(compromissos com horário), os Objetivos representam o que você está construindo.',
           ),
-          if (filtro != null) AreaFilterChip(area: filtro, onLimpar: () => setState(() => _filtro = null)),
+          if (filtro != null)
+            AreaFilterChip(
+              area: filtro,
+              onLimpar: () {
+                setState(() => _filtro = null);
+                widget.onFiltroLimpo?.call();
+              },
+            ),
           Expanded(
             child: state.isLoading
                 ? const LoadingState()

@@ -68,7 +68,17 @@ class NextAppointmentCard extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox(height: 72, child: Center(child: CircularProgressIndicator())),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, __) => AppCard(
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: AppColors.error),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('Não foi possível carregar seu próximo compromisso.', style: AppTextStyles.bodyMuted),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

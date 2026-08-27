@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bussola/core/components/app_card.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
+import 'package:bussola/features/dashboard/domain/dashboard_calculator.dart';
 import 'package:bussola/features/goals/presentation/providers/goal_provider.dart';
 import 'package:bussola/features/performance/domain/performance_calculator.dart';
 import 'package:bussola/features/tasks/presentation/providers/task_provider.dart';
@@ -20,7 +21,10 @@ class PerformanceSummaryCard extends ConsumerWidget {
     final taskState = ref.watch(taskNotifierProvider);
     final goalState = ref.watch(goalNotifierProvider);
 
-    final concluidas = taskState.concluidas.length;
+    // "Tarefas concluídas" é um resumo do DIA (concluídas hoje), não o
+    // total histórico — senão o número só cresce e para de ser um sinal
+    // útil de progresso diário.
+    final concluidasHoje = DashboardCalculator().concluidasHoje(taskState.tasks);
     final prioridadesConcluidas = calculator.prioridadesConcluidas(taskState.tasks);
     final objetivosEmAndamento = goalState.emAndamento.length;
 
@@ -32,7 +36,7 @@ class PerformanceSummaryCard extends ConsumerWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: _Metrica(icon: '\u{2705}', valor: '$concluidas', rotulo: 'Tarefas concluídas')),
+              Expanded(child: _Metrica(icon: '\u{2705}', valor: '$concluidasHoje', rotulo: 'Tarefas concluídas hoje')),
               Expanded(child: _Metrica(icon: '\u{1F525}', valor: '$prioridadesConcluidas', rotulo: 'Prioridades concluídas')),
               Expanded(child: _Metrica(icon: '\u{1F3AF}', valor: '$objetivosEmAndamento', rotulo: 'Objetivos em andamento')),
             ],

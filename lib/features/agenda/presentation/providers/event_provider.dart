@@ -8,6 +8,8 @@ import 'package:bussola/features/agenda/domain/usecases/get_event_reminders_usec
 import 'package:bussola/features/agenda/domain/usecases/get_events_usecase.dart';
 import 'package:bussola/features/agenda/domain/usecases/set_event_reminders_usecase.dart';
 import 'package:bussola/features/agenda/domain/usecases/update_event_usecase.dart';
+import 'package:bussola/features/agenda/presentation/providers/day_intelligence_provider.dart';
+import 'package:bussola/features/dashboard/presentation/providers/insight_provider.dart';
 
 /// Estado dos eventos do período visível. A tela só enxerga isto — quem
 /// carrega, cria, atualiza e exclui é sempre este Notifier, através dos
@@ -29,6 +31,7 @@ class EventListState {
 }
 
 class EventNotifier extends StateNotifier<EventListState> {
+  final Ref _ref;
   final GetEventsUseCase _getEvents;
   final CreateEventUseCase _createEvent;
   final UpdateEventUseCase _updateEvent;
@@ -39,7 +42,8 @@ class EventNotifier extends StateNotifier<EventListState> {
   DateTime? _rangeStart;
   DateTime? _rangeEnd;
 
-  EventNotifier({
+  EventNotifier(
+    this._ref, {
     GetEventsUseCase? getEvents,
     CreateEventUseCase? createEvent,
     UpdateEventUseCase? updateEvent,
@@ -51,6 +55,16 @@ class EventNotifier extends StateNotifier<EventListState> {
         _deleteEvent = deleteEvent ?? DeleteEventUseCase(),
         _setReminders = setReminders ?? SetEventRemindersUseCase(),
         super(const EventListState());
+
+  /// Derruba o cache de tudo que depende dos eventos de um período mais
+  /// amplo que o visível na Agenda — os insights e o "próximo compromisso"
+  /// da Hoje usam a última semana/o dia de hoje, não o período em tela, e
+  /// por isso não seriam recarregados sozinhos depois de criar/editar/
+  /// excluir um evento.
+  void _invalidateDashboardCaches(String userId) {
+    _ref.invalidate(dayIntelligenceProvider(userId));
+    _ref.invalidate(weeklyEventsProvider(userId));
+  }
 
   Future<void> loadPeriod({required String userId, required DateTime start, required DateTime end}) async {
     _userId = userId;
@@ -90,6 +104,7 @@ class EventNotifier extends StateNotifier<EventListState> {
         await _setReminders.execute(criado.id!, reminders);
       }
       await _refresh();
+      _invalidateDashboardCaches(userId);
       return true;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Não foi possível criar o evento.');
@@ -107,6 +122,7 @@ class EventNotifier extends StateNotifier<EventListState> {
       await _updateEvent.execute(current: current, changes: changes, updatedByUserId: updatedByUserId);
       await _setReminders.execute(current.id, reminders);
       await _refresh();
+      _invalidateDashboardCaches(current.userId);
       return true;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Não foi possível atualizar o evento.');
@@ -118,6 +134,7 @@ class EventNotifier extends StateNotifier<EventListState> {
     try {
       await _deleteEvent.execute(eventId: eventId, deletedByUserId: deletedByUserId);
       state = state.copyWith(events: state.events.where((e) => e.id != eventId).toList());
+      _invalidateDashboardCaches(deletedByUserId);
       return true;
     } catch (e) {
       state = state.copyWith(errorMessage: 'Não foi possível excluir o evento.');
@@ -127,7 +144,7 @@ class EventNotifier extends StateNotifier<EventListState> {
 }
 
 final eventNotifierProvider = StateNotifierProvider<EventNotifier, EventListState>(
-  (ref) => EventNotifier(),
+  (ref) => EventNotifier(ref),
 );
 
 /// Lembretes de um evento específico. `family` porque cada evento tem sua

@@ -123,6 +123,33 @@ void main() {
 
       expect(service.gerar(tasks: const [], events: events, agora: hoje), isEmpty);
     });
+
+    test(
+      'compromisso perto da virada do dia em UTC ainda conta no dia LOCAL correto',
+      () {
+        // A hora "na virada" muda de lado conforme o fuso local for atrás
+        // ou à frente do UTC — só assim o teste expõe o bug (comparar
+        // startDatetime em UTC bruto contra `agora` local) em qualquer
+        // máquina com fuso != UTC.
+        final offset = DateTime.now().timeZoneOffset;
+        final agora = DateTime(2026, 8, 19, 9);
+        final horaNaVirada = offset.isNegative
+            ? DateTime(2026, 8, 19, 23, 30) // fuso atrás do UTC: fim do dia local já é o dia seguinte em UTC
+            : DateTime(2026, 8, 19, 0, 30); // fuso à frente do UTC: início do dia local ainda é o dia anterior em UTC
+
+        // .toUtc() simula como o evento chega vindo do banco (sempre UTC).
+        final eventoNaVirada = _buildEvent(id: 'virada', startDatetime: horaNaVirada.toUtc());
+        final outros = List.generate(4, (i) => _buildEvent(id: 'e$i', startDatetime: DateTime(2026, 8, 19, 8 + i)));
+
+        final insights = service.gerar(tasks: const [], events: [eventoNaVirada, ...outros], agora: agora);
+
+        expect(insights, hasLength(1));
+        expect(insights.first.message, 'Seu dia está bem cheio hoje — 5 compromissos.');
+      },
+      skip: DateTime.now().timeZoneOffset == Duration.zero
+          ? 'Máquina rodando em UTC — a virada de dia local/UTC não é observável aqui.'
+          : false,
+    );
   });
 
   group('InsightService — desequilíbrio entre áreas', () {
@@ -182,6 +209,32 @@ void main() {
       expect(insights, hasLength(1));
       expect(insights.first.message, 'Você não teve nenhuma tarefa ou compromisso de Saúde essa semana.');
     });
+
+    test(
+      'compromisso perto da virada do dia em UTC ainda conta na janela de 7 dias no fuso LOCAL',
+      () {
+        final offset = DateTime.now().timeZoneOffset;
+        final hoje = DateTime.now();
+        final horaNaVirada = offset.isNegative
+            ? DateTime(hoje.year, hoje.month, hoje.day, 23, 30)
+            : DateTime(hoje.year, hoje.month, hoje.day, 0, 30);
+
+        final events = [
+          for (int i = 0; i < 2; i++)
+            _buildEvent(id: 'e$i', lifeArea: LifeArea.trabalho, startDatetime: DateTime(hoje.year, hoje.month, hoje.day, 9 + i)),
+          // .toUtc() simula como o evento chega vindo do banco (sempre UTC).
+          _buildEvent(id: 'virada', lifeArea: LifeArea.trabalho, startDatetime: horaNaVirada.toUtc()),
+        ];
+
+        final insights = service.gerar(tasks: const [], events: events, agora: hoje);
+
+        expect(insights, hasLength(1));
+        expect(insights.first.message, 'Você não teve nenhuma tarefa ou compromisso de Saúde essa semana.');
+      },
+      skip: DateTime.now().timeZoneOffset == Duration.zero
+          ? 'Máquina rodando em UTC — a virada de dia local/UTC não é observável aqui.'
+          : false,
+    );
   });
 
   group('InsightService — prioridade e limite de 2', () {

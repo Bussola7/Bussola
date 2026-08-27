@@ -28,7 +28,13 @@ class CalendarScreen extends ConsumerStatefulWidget {
   /// dos eventos) e some quando o usuário limpa o filtro.
   final LifeArea? filtroInicial;
 
-  const CalendarScreen({super.key, this.filtroInicial});
+  /// Avisa quem abriu a tela (o `HomeShell`) que o filtro foi limpo — sem
+  /// isso, o `HomeShell` continua guardando o filtro antigo e o reaplica
+  /// na próxima vez que essa aba for reconstruída (ex: ao trocar de aba
+  /// e voltar), fazendo o filtro "limpo" reaparecer sozinho.
+  final VoidCallback? onFiltroLimpo;
+
+  const CalendarScreen({super.key, this.filtroInicial, this.onFiltroLimpo});
 
   @override
   ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
@@ -118,7 +124,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               text: 'Aqui você organiza seus compromissos com data e horário marcados: reuniões, eventos, '
                   'consultas e qualquer compromisso que tenha um momento específico.',
             ),
-            if (_filtro != null) AreaFilterChip(area: _filtro!, onLimpar: () => setState(() => _filtro = null)),
+            if (_filtro != null)
+              AreaFilterChip(
+                area: _filtro!,
+                onLimpar: () {
+                  setState(() => _filtro = null);
+                  widget.onFiltroLimpo?.call();
+                },
+              ),
             CalendarHeader(
               title: _titleFor(uiState),
               viewMode: uiState.viewMode,

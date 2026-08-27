@@ -58,9 +58,21 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     final screens = [
       DashboardScreen(nomeUsuario: nome, userId: userId, onNavigateToTab: _navigateToTab),
-      CalendarScreen(key: ValueKey('agenda-$_filtroAgenda'), filtroInicial: _filtroAgenda),
-      TasksScreen(key: ValueKey('tarefas-$_filtroTarefas'), filtroInicial: _filtroTarefas),
-      GoalsScreen(key: ValueKey('metas-$_filtroMetas'), filtroInicial: _filtroMetas),
+      CalendarScreen(
+        key: ValueKey('agenda-$_filtroAgenda'),
+        filtroInicial: _filtroAgenda,
+        onFiltroLimpo: () => setState(() => _filtroAgenda = null),
+      ),
+      TasksScreen(
+        key: ValueKey('tarefas-$_filtroTarefas'),
+        filtroInicial: _filtroTarefas,
+        onFiltroLimpo: () => setState(() => _filtroTarefas = null),
+      ),
+      GoalsScreen(
+        key: ValueKey('metas-$_filtroMetas'),
+        filtroInicial: _filtroMetas,
+        onFiltroLimpo: () => setState(() => _filtroMetas = null),
+      ),
       ProfileScreen(
         nome: nome,
         email: email,

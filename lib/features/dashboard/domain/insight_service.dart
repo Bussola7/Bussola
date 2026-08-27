@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:bussola/core/utils/date_formatting.dart';
 import 'package:bussola/features/agenda/data/models/event_model.dart';
 import 'package:bussola/features/tasks/data/models/task_model.dart';
 import 'package:bussola/shared/models/life_area.dart';
@@ -72,8 +73,12 @@ class InsightService {
   }
 
   /// Regra 2: 5+ compromissos hoje.
+  ///
+  /// `startDatetime` vem do banco em UTC — precisa virar hora local antes
+  /// de comparar com [agora] (local), senão um compromisso à noite (ou de
+  /// madrugada) pode cair no dia calendário errado.
   Insight? _diaCheio(List<EventModel> events, DateTime agora) {
-    final hojeCount = events.where((e) => !e.isDeleted && _mesmoDia(e.startDatetime, agora)).length;
+    final hojeCount = events.where((e) => !e.isDeleted && DateFormatting.isMesmoDia(e.startDatetime.toLocal(), agora)).length;
     if (hojeCount < _minCompromissosDiaCheio) return null;
 
     return Insight(message: 'Seu dia está bem cheio hoje — $hojeCount compromissos.');
@@ -94,7 +99,8 @@ class InsightService {
     }
     for (final e in events) {
       if (e.isDeleted || e.lifeArea == null) continue;
-      if (!e.startDatetime.isBefore(inicioJanela) && !e.startDatetime.isAfter(fimJanela)) {
+      final inicio = e.startDatetime.toLocal();
+      if (!inicio.isBefore(inicioJanela) && !inicio.isAfter(fimJanela)) {
         contagem[e.lifeArea!] = (contagem[e.lifeArea!] ?? 0) + 1;
       }
     }
@@ -106,6 +112,4 @@ class InsightService {
     final area = ociosas.first.key;
     return Insight(message: 'Você não teve nenhuma tarefa ou compromisso de ${area.label} essa semana.');
   }
-
-  bool _mesmoDia(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 }

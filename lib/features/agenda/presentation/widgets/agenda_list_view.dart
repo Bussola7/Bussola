@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bussola/core/theme/app_text_styles.dart';
 import 'package:bussola/core/utils/date_formatting.dart';
 import 'package:bussola/features/agenda/data/models/event_model.dart';
+import 'package:bussola/features/agenda/domain/agenda_grouping.dart';
 import 'package:bussola/features/agenda/presentation/providers/event_provider.dart';
 import 'package:bussola/features/agenda/presentation/widgets/empty_agenda_state.dart';
 import 'package:bussola/features/agenda/presentation/widgets/event_card.dart';
@@ -34,11 +35,7 @@ class AgendaListView extends ConsumerWidget {
       return const EmptyAgendaState();
     }
 
-    final porDia = <DateTime, List<EventModel>>{};
-    for (final evento in eventos) {
-      final dia = DateFormatting.apenasData(evento.startDatetime);
-      porDia.putIfAbsent(dia, () => []).add(evento);
-    }
+    final porDia = AgendaGrouping.porDia(eventos);
     final dias = porDia.keys.toList()..sort();
 
     return ListView.builder(

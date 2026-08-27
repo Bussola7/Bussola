@@ -18,7 +18,13 @@ class TasksScreen extends ConsumerStatefulWidget {
   /// da vida" na Hoje. O usuário pode limpar depois, dentro da própria tela.
   final LifeArea? filtroInicial;
 
-  const TasksScreen({super.key, this.filtroInicial});
+  /// Avisa quem abriu a tela (o `HomeShell`) que o filtro foi limpo — sem
+  /// isso, o `HomeShell` continua guardando o filtro antigo e o reaplica
+  /// na próxima vez que essa aba for reconstruída (ex: ao trocar de aba
+  /// e voltar), fazendo o filtro "limpo" reaparecer sozinho.
+  final VoidCallback? onFiltroLimpo;
+
+  const TasksScreen({super.key, this.filtroInicial, this.onFiltroLimpo});
 
   @override
   ConsumerState<TasksScreen> createState() => _TasksScreenState();
@@ -73,7 +79,14 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
             text: 'Aqui você organiza suas tarefas do dia a dia: pendências, afazeres e pequenas ações que '
                 'precisam ser feitas — com prazo, prioridade e status de conclusão.',
           ),
-          if (filtro != null) AreaFilterChip(area: filtro, onLimpar: () => setState(() => _filtro = null)),
+          if (filtro != null)
+            AreaFilterChip(
+              area: filtro,
+              onLimpar: () {
+                setState(() => _filtro = null);
+                widget.onFiltroLimpo?.call();
+              },
+            ),
           Expanded(
             child: state.isLoading
                 ? const LoadingState()
