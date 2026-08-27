@@ -32,7 +32,7 @@ class AgendaListView extends ConsumerWidget {
 
     final porDia = <DateTime, List<EventModel>>{};
     for (final evento in state.events) {
-      final dia = DateFormatting.apenasData(evento.startDatetime);
+      final dia = DateFormatting.apenasData(evento.startDatetime.toLocal());
       porDia.putIfAbsent(dia, () => []).add(evento);
     }
     final dias = porDia.keys.toList()..sort();

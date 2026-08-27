@@ -39,8 +39,8 @@ class EventService {
     if (event.title.trim().isEmpty) {
       throw ArgumentError('O evento precisa de um título.');
     }
-    if (event.endDatetime.isBefore(event.startDatetime)) {
-      throw ArgumentError('O horário final não pode ser antes do horário inicial.');
+    if (!event.endDatetime.isAfter(event.startDatetime)) {
+      throw ArgumentError('O horário final precisa ser depois do horário inicial.');
     }
   }
 }

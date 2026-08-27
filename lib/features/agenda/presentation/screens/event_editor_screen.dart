@@ -9,7 +9,9 @@ import 'package:bussola/features/agenda/data/models/enums.dart';
 import 'package:bussola/features/agenda/data/models/event_model.dart';
 import 'package:bussola/features/agenda/data/models/reminder_model.dart';
 import 'package:bussola/features/agenda/domain/entities/event_entity.dart';
+import 'package:bussola/features/agenda/domain/services/calendar_service.dart';
 import 'package:bussola/features/agenda/domain/usecases/check_event_conflicts_usecase.dart';
+import 'package:bussola/features/agenda/presentation/providers/calendar_provider.dart';
 import 'package:bussola/features/agenda/presentation/providers/category_provider.dart';
 import 'package:bussola/features/agenda/presentation/providers/event_provider.dart';
 import 'package:bussola/features/agenda/presentation/widgets/category_chip.dart';
@@ -43,6 +45,7 @@ class EventEditorScreen extends ConsumerStatefulWidget {
 }
 
 class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
+  final _calendarService = CalendarService();
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   late final TextEditingController _descriptionController;
@@ -68,10 +71,14 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     _descriptionController = TextEditingController(text: existing?.description ?? '');
     _locationController = TextEditingController(text: existing?.location ?? '');
 
-    final base = existing?.startDatetime ?? widget.initialDate ?? DateTime.now();
+    // .toLocal() é essencial aqui: startDatetime/endDatetime vêm do banco
+    // em UTC (DateTime.parse de um ISO com timezone), e sem converter pro
+    // fuso local antes de extrair hora/minuto, o horário mostrado sai
+    // errado (ex: eventos criados no Brasil aparecem 3h à frente).
+    final base = (existing?.startDatetime ?? widget.initialDate ?? DateTime.now()).toLocal();
     _date = DateTime(base.year, base.month, base.day);
-    _startTime = TimeOfDay.fromDateTime(existing?.startDatetime ?? DateTime(base.year, base.month, base.day, 9));
-    _endTime = TimeOfDay.fromDateTime(existing?.endDatetime ?? DateTime(base.year, base.month, base.day, 10));
+    _startTime = TimeOfDay.fromDateTime(existing != null ? existing.startDatetime.toLocal() : DateTime(base.year, base.month, base.day, 9));
+    _endTime = TimeOfDay.fromDateTime(existing != null ? existing.endDatetime.toLocal() : DateTime(base.year, base.month, base.day, 10));
     _allDay = existing?.allDay ?? false;
     _priority = existing?.priority ?? Priority.media;
     _categoryId = existing?.categoryId;
@@ -115,12 +122,43 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   Future<void> _pickTime({required bool isStart}) async {
     final picked = await showTimePicker(context: context, initialTime: isStart ? _startTime : _endTime);
     if (picked == null) return;
-    setState(() => isStart ? _startTime = picked : _endTime = picked);
+
+    setState(() {
+      if (!isStart) {
+        _endTime = picked;
+        return;
+      }
+      // Ao mudar o início, o fim acompanha pra manter a mesma duração que
+      // já estava configurada — sem isso, mudar só o início facilmente
+      // deixa fim igual (ou antes) do início sem o usuário notar.
+      final duracao = _combine(_date, _endTime).difference(_combine(_date, _startTime));
+      _startTime = picked;
+      if (duracao > Duration.zero) {
+        final novoFim = _combine(_date, picked).add(duracao);
+        _endTime = TimeOfDay(hour: novoFim.hour, minute: novoFim.minute);
+      }
+    });
   }
 
   Future<void> _pickCategory() async {
     final categoryId = await CategoryPickerSheet.show(context, userId: widget.userId, selectedCategoryId: _categoryId);
     if (categoryId != null) setState(() => _categoryId = categoryId);
+  }
+
+  /// [widget.calendarId] chega vazio quando o usuário ainda não tem nenhum
+  /// calendário (o app não tem um fluxo próprio de criar um) — nesse caso
+  /// cria o "Principal" na hora em vez de deixar o evento falhar.
+  Future<String?> _resolverCalendarId() async {
+    if (widget.calendarId.isNotEmpty) return widget.calendarId;
+    try {
+      final calendar = await _calendarService.getOrCreateDefaultCalendar(widget.userId);
+      if (ref.read(calendarNotifierProvider).calendars.isEmpty) {
+        await ref.read(calendarNotifierProvider.notifier).load(widget.userId);
+      }
+      return calendar.id;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _submit() async {
@@ -129,9 +167,9 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     final start = _allDay ? DateTime(_date.year, _date.month, _date.day) : _combine(_date, _startTime);
     final end = _allDay ? DateTime(_date.year, _date.month, _date.day, 23, 59) : _combine(_date, _endTime);
 
-    if (end.isBefore(start)) {
+    if (!end.isAfter(start)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('O horário final não pode ser antes do inicial.')),
+        const SnackBar(content: Text('O horário final precisa ser depois do inicial.')),
       );
       return;
     }
@@ -196,9 +234,18 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         reminders: reminderModels,
       );
     } else {
+      final calendarId = await _resolverCalendarId();
+      if (calendarId == null) {
+        if (!mounted) return;
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível preparar um calendário para o evento.')),
+        );
+        return;
+      }
       success = await notifier.createEvent(
         entity: entity,
-        calendarId: widget.calendarId,
+        calendarId: calendarId,
         userId: widget.userId,
         reminders: reminderModels,
       );
